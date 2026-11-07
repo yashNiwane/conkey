@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="simple-keyboard.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    body {
+      margin: 0;
+      padding: 4px;
+      background: #0f1115;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* Hotkeys bar */
+    .hotkey-bar {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+    .hotkey-bar::-webkit-scrollbar { display: none; }
+
+    .hotkey-btn {
+      flex: 1;
+      min-width: 54px;
+      height: 38px;
+      background: #181b21;
+      color: #f3f4f6;
+      border: 1px solid #2b303c;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .hotkey-btn:active {
+      background: #2e3442;
+      transform: scale(0.96);
+    }
+    .hotkey-btn.accent {
+      background: #3b82f6;
+      border-color: #3b82f6;
+    }
+
+    /* Simple Keyboard Custom Dark Styling */
+    .simple-keyboard {
+      background-color: transparent !important;
+      padding: 0 !important;
+      max-width: 100%;
+    }
+    .hg-theme-default .hg-row {
+      margin-bottom: 4px !important;
+    }
+    .hg-theme-default .hg-button {
+      background: #1c2028 !important;
+      color: #f3f4f6 !important;
+      border: 1px solid #2b303c !important;
+      border-bottom: 2px solid #14171d !important;
+      border-radius: 6px !important;
+      height: 46px !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .hg-theme-default .hg-button:active {
+      background: #3b82f6 !important;
+      color: #ffffff !important;
+      border-color: #3b82f6 !important;
+      transform: translateY(1px);
+    }
+
+    /* Modifiers highlighting */
+    .hg-button-modifier-active {
+      background: #f59e0b !important;
+      color: #000000 !important;
+      border-color: #fcd34d !important;
+      font-weight: bold !important;
+    }
+
+    /* Special keys sizing */
+    .hg-button-space { flex-grow: 4 !important; }
+    .hg-button-tab { max-width: 52px; font-size: 11px !important; }
+    .hg-button-lock { max-width: 52px; font-size: 11px !important; }
+    .hg-button-shift { max-width: 62px; font-size: 11px !important; }
+    .hg-button-enter { max-width: 72px; background: #3b82f6 !important; border-color: #3b82f6 !important; font-size: 11px !important; }
+    .hg-button-bksp { max-width: 52px; font-size: 13px !important; }
+    .hg-button-esc { max-width: 44px; font-size: 11px !important; }
+    .hg-button-control, .hg-button-alt, .hg-button-win { max-width: 46px; font-size: 11px !important; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Hotkeys Quick Bar -->
+  <div class="hotkey-bar">
+    <button class="hotkey-btn accent" onclick="triggerCombo(['CTRL'], 'C')">Ctrl+C</button>
+    <button class="hotkey-btn accent" onclick="triggerCombo(['CTRL'], 'V')">Ctrl+V</button>
+    <button class="hotkey-btn" onclick="triggerCombo(['CTRL'], 'X')">Ctrl+X</button>
+    <button class="hotkey-btn" onclick="triggerCombo(['CTRL'], 'Z')">Ctrl+Z</button>
+    <button class="hotkey-btn" onclick="triggerCombo(['CTRL'], 'A')">Ctrl+A</button>
+    <button class="hotkey-btn" onclick="triggerCombo(['CTRL'], 'S')">Ctrl+S</button>
+    <button class="hotkey-btn accent" onclick="triggerCombo(['ALT'], 'TAB')">Alt+Tab</button>
+    <button class="hotkey-btn" onclick="triggerCombo(['CTRL', 'SHIFT'], 'ESCAPE')">TaskMgr</button>
+  </div>
+
+  <!-- The Official Virtual Keyboard -->
+  <div class="simple-keyboard"></div>
+
+  <script src="simple-keyboard.js"></script>
+  <script>
+    let isCtrl = false;
+    let isAlt = false;
+    let isShift = false;
+    let isWin = false;
+
+    const Keyboard = window.SimpleKeyboard.default;
+
+    const keyboard = new Keyboard({
+      layout: {
+        default: [
+          "{esc} 1 2 3 4 5 6 7 8 9 0 - = {bksp}",
+          "{tab} q w e r t y u i o p [ ] \\",
+          "{lock} a s d f g h j k l ; ' {enter}",
+          "{shift} z x c v b n m , . / {del}",
+          "{control} {win} {alt} {space} {alt} {left} {up} {down} {right}"
+        ],
+        shift: [
+          "{esc} ! @ # $ % ^ & * ( ) _ + {bksp}",
+          "{tab} Q W E R T Y U I O P { } |",
+          "{lock} A S D F G H J K L : \" {enter}",
+          "{shift} Z X C V B N M < > ? {del}",
+          "{control} {win} {alt} {space} {alt} {left} {up} {down} {right}"
+        ]
+      },
+      display: {
+        "{esc}": "Esc",
+        "{bksp}": "⌫",
+        "{enter}": "⏎ Enter",
+        "{tab}": "Tab",
+        "{lock}": "Caps",
+        "{shift}": "⇧ Shift",
+        "{control}": "Ctrl",
+        "{alt}": "Alt",
+        "{win}": "⊞",
+        "{space}": "Space",
+        "{del}": "Del",
+        "{left}": "◀",
+        "{up}": "▲",
+        "{down}": "▼",
+        "{right}": "▶"
+      },
+      onKeyPress: button => handleKeyPress(button)
+    });
+
+    function handleKeyPress(button) {
+      if (button === "{shift}") {
+        isShift = !isShift;
+        keyboard.setOptions({
+          layoutName: isShift ? "shift" : "default"
+        });
+        updateModifierStyles();
+        return;
+      }
+
+      if (button === "{lock}") {
+        const current = keyboard.options.layoutName;
+        keyboard.setOptions({
+          layoutName: current === "default" ? "shift" : "default"
+        });
+        return;
+      }
+
+      if (button === "{control}") {
+        isCtrl = !isCtrl;
+        updateModifierStyles();
+        return;
+      }
+
+      if (button === "{alt}") {
+        isAlt = !isAlt;
+        updateModifierStyles();
+        return;
+      }
+
+      if (button === "{win}") {
+        isWin = !isWin;
+        updateModifierStyles();
+        return;
+      }
+
+      // Map special tags to key names
+      const keyMap = {
+        "{esc}": "ESCAPE",
+        "{bksp}": "BACKSPACE",
+        "{enter}": "ENTER",
+        "{tab}": "TAB",
+        "{space}": "SPACE",
+        "{del}": "DELETE",
+        "{left}": "LEFT",
+        "{up}": "UP",
+        "{down}": "DOWN",
+        "{right}": "RIGHT"
+      };
+
+      const keyName = keyMap[button] || button;
+
+      const mods = [];
+      if (isCtrl) mods.push("CTRL");
+      if (isAlt) mods.push("ALT");
+      if (isWin) mods.push("WIN");
+
+      if (mods.length > 0) {
+        triggerCombo(mods, keyName.toUpperCase());
+        // Auto-clear modifiers after chord
+        isCtrl = false;
+        isAlt = false;
+        isWin = false;
+        updateModifierStyles();
+      } else {
+        if (window.ConKeyBridge) {
+          window.ConKeyBridge.sendKey(keyName);
+        }
+      }
+
+      // If shift was active for one key, reset layout
+      if (isShift) {
+        isShift = false;
+        keyboard.setOptions({ layoutName: "default" });
+        updateModifierStyles();
+      }
+    }
+
+    function triggerCombo(mods, key) {
+      if (window.ConKeyBridge) {
+        window.ConKeyBridge.sendCombo(JSON.stringify(mods), key);
+      }
+    }
+
+    function updateModifierStyles() {
+      const ctrlBtn = document.querySelector(".hg-button-control");
+      const altBtns = document.querySelectorAll(".hg-button-alt");
+      const shiftBtns = document.querySelectorAll(".hg-button-shift");
+      const winBtn = document.querySelector(".hg-button-win");
+
+      if (ctrlBtn) ctrlBtn.classList.toggle("hg-button-modifier-active", isCtrl);
+      altBtns.forEach(b => b.classList.toggle("hg-button-modifier-active", isAlt));
+      shiftBtns.forEach(b => b.classList.toggle("hg-button-modifier-active", isShift));
+      if (winBtn) winBtn.classList.toggle("hg-button-modifier-active", isWin);
+    }
+  </script>
+</body>
+</html>

@@ -19,6 +19,7 @@ from typing import Dict, Optional, Set
 from aiohttp import web, WSMsgType
 
 from host.config import load_config
+from host.bt_server import BluetoothServer
 from host.protocol import (
     parse_command,
     ProtocolError,
@@ -99,6 +100,7 @@ class ConKeyServer:
         self.runner: Optional[web.AppRunner] = None
         self.discovery_transport: Optional[asyncio.DatagramTransport] = None
         self._beacon_task: Optional[asyncio.Task] = None
+        self.bt_server = BluetoothServer(channel=4)
 
         self._setup_routes()
 
@@ -305,20 +307,29 @@ class ConKeyServer:
         except Exception as e:
             logger.warning("Could not bind UDP discovery port %d: %s", self.discovery_port, e)
 
+        # Start Bluetooth Server
+        try:
+            self.bt_server.start()
+        except Exception as e:
+            logger.warning("Could not start Bluetooth server: %s", e)
+
         local_ip = get_local_ip()
         print("\n" + "=" * 58)
         print(f"       CONKEY LAPTOP RECEIVER: {self.device_name}")
         print("=" * 58)
+        print(f"  Bluetooth Ready:     MAC {self.bt_server.mac} (Channel {self.bt_server.channel})")
         print(f"  Mobile Browser URL:  http://{local_ip}:{self.port}/")
         print(f"  Direct Web Auth:     http://{local_ip}:{self.port}/?pin={self.pin}")
         print(f"  Host IP for App:     {local_ip}:{self.port}")
         print(f"  Device Name:         {self.device_name}")
         print(f"  Pairing PIN:         {self.pin}")
         print("=" * 58)
-        print("  - Zero-config auto-discovery active on local Wi-Fi")
+        print("  - Bluetooth direct connection active (Pair & Play)")
+        print("  - Local Wi-Fi discovery beacon active")
         print("  - Press Ctrl+C in terminal to stop server\n")
 
     async def stop(self):
+        self.bt_server.stop()
         if self._beacon_task:
             self._beacon_task.cancel()
         if self.discovery_transport:
