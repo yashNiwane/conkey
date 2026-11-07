@@ -1,0 +1,5 @@
+timestamp	phase	decision	reason	evidence
+2026-11-07T10:21:00Z	grounding	Use Wi-Fi WebSocket over local network with PIN/token auth	Ultra-low latency (<5ms), bi-directional state, no special Bluetooth driver pairing issues on Windows	websockets + asyncio installed in Python 3.14
+2026-11-07T10:21:00Z	grounding	Use Win32 SendInput API for keyboard simulation	SendInput is the official Windows API that bypasses DirectX/Win32 application boundaries, supports Unicode direct injection without layout mismatches	ctypes.windll.user32.SendInput native support on Windows
+2026-11-07T10:25:00Z	implementation	Built Host Win32 SendInput and WebSocket server	Low-latency typing, modifier chording, PIN security	12 passing pytest tests in tests/
+2026-11-07T10:30:00Z	implementation	Built Android Native App and APK via Gradle	Native Android app with OkHttp WebSocket, UDP auto-discovery, haptics	app-debug.apk assembled successfully (2.6MB)

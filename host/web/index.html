@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ConKey - Laptop Keyboard Remote</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="4" width="20" height="16" rx="2"/>
+        <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/>
+      </svg>
+      <span>ConKey</span>
+    </div>
+    <div id="statusBadge" class="status-badge">
+      <span class="status-dot"></span>
+      <span id="statusText">Connecting...</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="apk-banner">
+      <span>Get the native Android app</span>
+      <a class="apk-btn" href="/download/conkey.apk" download>Download APK</a>
+    </div>
+
+    <!-- Auth Card -->
+    <div id="authCard" class="card">
+      <div class="section-title">Device Pairing</div>
+      <div class="auth-row">
+        <input type="text" id="pinInput" placeholder="Enter 4-digit PIN" maxlength="6" inputmode="numeric" value="{{SERVER_PIN}}">
+        <button id="connectBtn" class="primary">Pair</button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="tabKeyboard">Hotkeys & Typing</button>
+      <button class="tab-btn" data-tab="tabBroken">Dead Keys & Nav</button>
+      <button class="tab-btn" data-tab="tabTouchpad">Touchpad</button>
+    </div>
+
+    <!-- Tab 1: Typing & Common Hotkeys -->
+    <div id="tabKeyboard" class="tab-content active">
+      <div class="card">
+        <div class="section-title">Type Anything (Uses Phone Keyboard)</div>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="textInput" placeholder="Type text, press Enter or Send..." autocomplete="off" autocapitalize="none">
+          <button id="sendTextBtn" class="primary" style="min-width: 72px;">Send</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Frequently Broken Hotkeys</div>
+        <div class="grid grid-cols-4">
+          <button class="key-btn accent" data-combo="CTRL+C">Ctrl+C</button>
+          <button class="key-btn accent" data-combo="CTRL+V">Ctrl+V</button>
+          <button class="key-btn" data-combo="CTRL+Z">Ctrl+Z</button>
+          <button class="key-btn" data-combo="CTRL+X">Ctrl+X</button>
+          <button class="key-btn" data-combo="CTRL+A">Ctrl+A</button>
+          <button class="key-btn" data-combo="CTRL+S">Ctrl+S</button>
+          <button class="key-btn" data-combo="CTRL+F">Ctrl+F</button>
+          <button class="key-btn" data-combo="ALT+TAB">Alt+Tab</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Essential Editing Keys</div>
+        <div class="grid grid-cols-4">
+          <button class="key-btn" data-key="BACKSPACE">⌫ Back</button>
+          <button class="key-btn accent" data-key="ENTER">⏎ Enter</button>
+          <button class="key-btn" data-key="TAB">⇥ Tab</button>
+          <button class="key-btn" data-key="ESC">Esc</button>
+          <button class="key-btn" data-key="SPACE">Space</button>
+          <button class="key-btn" data-key="DEL">Del</button>
+          <button class="key-btn" data-key="WIN">⊞ Win</button>
+          <button class="key-btn" data-combo="CTRL+SHIFT+ESC">TaskMgr</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Broken Keys & Navigation Cluster -->
+    <div id="tabBroken" class="tab-content">
+      <div class="card">
+        <div class="section-title">Quick Rescue for Dead Keys</div>
+        <div class="grid grid-cols-4">
+          <button class="key-btn accent" data-type-text="A">A</button>
+          <button class="key-btn accent" data-type-text="a">a</button>
+          <button class="key-btn accent" data-type-text="S">S</button>
+          <button class="key-btn accent" data-type-text="s">s</button>
+          <button class="key-btn accent" data-type-text="!">!</button>
+          <button class="key-btn" data-type-text="@">@</button>
+          <button class="key-btn" data-type-text="#">#</button>
+          <button class="key-btn" data-type-text="$">$</button>
+          <button class="key-btn" data-type-text="%">%</button>
+          <button class="key-btn" data-type-text="&">&</button>
+          <button class="key-btn" data-type-text="*">*</button>
+          <button class="key-btn" data-type-text="?">?</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Navigation Controls</div>
+        <div class="grid grid-cols-3" style="max-width: 280px; margin: 0 auto;">
+          <div></div>
+          <button class="key-btn" data-key="UP">▲</button>
+          <div></div>
+          <button class="key-btn" data-key="LEFT">◀</button>
+          <button class="key-btn" data-key="DOWN">▼</button>
+          <button class="key-btn" data-key="RIGHT">▶</button>
+        </div>
+        <div class="grid grid-cols-4" style="margin-top: 10px;">
+          <button class="key-btn" data-key="HOME">Home</button>
+          <button class="key-btn" data-key="END">End</button>
+          <button class="key-btn" data-key="PAGEUP">PgUp</button>
+          <button class="key-btn" data-key="PAGEDOWN">PgDn</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Touchpad -->
+    <div id="tabTouchpad" class="tab-content">
+      <div class="card">
+        <div class="section-title">Laptop Mouse Trackpad</div>
+        <div id="trackpad" class="trackpad">
+          Drag to move cursor &bull; Tap to click &bull; 2-finger scroll
+        </div>
+        <div class="grid grid-cols-2" style="margin-top: 10px;">
+          <button id="btnLeftClick" class="key-btn">Left Click</button>
+          <button id="btnRightClick" class="key-btn">Right Click</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

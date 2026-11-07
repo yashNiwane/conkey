@@ -1,0 +1,27 @@
+# ConKey Task Checklist (poteto-mode Feature Playbook)
+
+- [x] 1. Ground & How: Analyze Windows SendInput mechanics, security model, and Android-to-PC connection options
+- [x] 2. Architect: Parallel design exploration for transport protocol (WebSocket vs UDP vs HTTP vs Bluetooth) and security
+- [x] 3. Throughput Checkpoint:
+  - [x] Blocking first steps: Win32 SendInput validation & canonical protocol specification
+  - [x] Independent workstreams: Workstream A (Host Server + Web Companion) & Workstream B (Android Native Client)
+  - [x] Shared mutable state: InputSession state machine (modifier states, authentication, connection status)
+  - [x] Smallest safe decomposition: Sequential single-owner execution prevents protocol drift between client and host
+- [x] 4. Model the Domain: Define Command protocol, KeyCode enum/registry, input state, authentication handshake
+- [x] 5. Implement Host Server (Python + Win32 SendInput + WebSocket/HTTP + Pairing Security + QR Code):
+  - [x] 5.1 Win32 low-level SendInput engine (Unicode text typing + virtual key press/release + modifier chords)
+  - [x] 5.2 Server & pairing protocol (PIN / token handshake, QR code generation, auto-discovery)
+  - [x] 5.3 Web-based companion client (zero-install mobile fallback)
+- [x] 6. Implement Android Native Client (Kotlin / Java + Android Jetpack / Compose or clean View UI):
+  - [x] 6.1 Gradle project setup and Android manifest (permissions: Internet, Network State)
+  - [x] 6.2 Modern minimal Android UI (Hotkeys bar: Ctrl+C, Ctrl+V, A, S, !, cursor navigation, full text IME field, trackpad)
+  - [x] 6.3 Secure WebSocket client connection + auto-reconnect + haptic feedback
+  - [x] 6.4 Build release/debug APK using Gradle 8.12
+- [x] 7. Verification:
+  - [x] 7.1 Automated unit & integration tests for keystroke injection and command parsing
+  - [x] 7.2 End-to-end socket protocol test with simulated client
+  - [x] 7.3 Android APK build verification and artifact generation
+- [x] 8. Documentation & Run Scripts:
+  - [x] Clean one-click launcher for Windows host
+  - [x] Instructions for installing APK or opening web fallback
+- [x] 9. Final Polish & Review (P-stack deslop and verification)

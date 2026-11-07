@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.log
+
+# Android & Gradle
+.gradle/
+build/
+android/app/build/
+android/.gradle/
+local.properties
+*.apk.idsig

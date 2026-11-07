@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:orientation="vertical">
+
+    <!-- Top App Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="ConKey"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:text="Disconnected"
+            android:textColor="@color/status_red"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnToggleSettings"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_btn"
+            android:text="⚙ Setup"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <!-- Connection Setup Card -->
+            <LinearLayout
+                android:id="@+id/cardConnection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CONNECTION SETUP"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <EditText
+                        android:id="@+id/etHostIp"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="2"
+                        android:background="@drawable/bg_input"
+                        android:hint="Laptop IP (e.g. 192.168.1.5)"
+                        android:inputType="textUri"
+                        android:paddingHorizontal="10dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="14sp" />
+
+                    <EditText
+                        android:id="@+id/etPort"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_input"
+                        android:hint="Port"
+                        android:inputType="number"
+                        android:text="8765"
+                        android:paddingHorizontal="10dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <EditText
+                        android:id="@+id/etPin"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input"
+                        android:hint="4-digit PIN"
+                        android:inputType="numberPassword"
+                        android:paddingHorizontal="10dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/btnAutoDetect"
+                        android:layout_width="wrap_content"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_btn"
+                        android:text="Auto Detect"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/btnConnect"
+                        android:layout_width="wrap_content"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_btn_accent"
+                        android:text="Connect"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Typing Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DIRECT TEXT &amp; IME TYPING"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <EditText
+                        android:id="@+id/etTextInput"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input"
+                        android:hint="Type or dictate text here..."
+                        android:imeOptions="actionSend"
+                        android:inputType="text|textMultiLine"
+                        android:paddingHorizontal="10dp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="15sp" />
+
+                    <Button
+                        android:id="@+id/btnSendText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_btn_accent"
+                        android:text="Send"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Frequently Broken Shortcuts -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BROKEN HOTKEYS SHORTCUTS"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:columnCount="4">
+
+                    <Button android:id="@+id/btnCtrlC" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn_accent" android:text="Ctrl+C" android:textColor="@color/text_primary" android:textSize="13sp" />
+                    <Button android:id="@+id/btnCtrlV" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn_accent" android:text="Ctrl+V" android:textColor="@color/text_primary" android:textSize="13sp" />
+                    <Button android:id="@+id/btnCtrlZ" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="Ctrl+Z" android:textColor="@color/text_primary" android:textSize="13sp" />
+                    <Button android:id="@+id/btnCtrlX" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="Ctrl+X" android:textColor="@color/text_primary" android:textSize="13sp" />
+
+                    <Button android:id="@+id/btnCtrlA" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="Ctrl+A" android:textColor="@color/text_primary" android:textSize="13sp" />
+                    <Button android:id="@+id/btnCtrlS" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="Ctrl+S" android:textColor="@color/text_primary" android:textSize="13sp" />
+                    <Button android:id="@+id/btnCtrlF" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="Ctrl+F" android:textColor="@color/text_primary" android:textSize="13sp" />
+                    <Button android:id="@+id/btnAltTab" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="Alt+Tab" android:textColor="@color/text_primary" android:textSize="13sp" />
+                </GridLayout>
+            </LinearLayout>
+
+            <!-- Broken Keys Quick Pad -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BROKEN KEYS RESCUE (A, S, !)"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:columnCount="4">
+
+                    <Button android:id="@+id/btnKeyCapA" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn_accent" android:text="A" android:textColor="@color/text_primary" android:textSize="16sp" />
+                    <Button android:id="@+id/btnKeyLowA" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn_accent" android:text="a" android:textColor="@color/text_primary" android:textSize="16sp" />
+                    <Button android:id="@+id/btnKeyCapS" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn_accent" android:text="S" android:textColor="@color/text_primary" android:textSize="16sp" />
+                    <Button android:id="@+id/btnKeyLowS" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn_accent" android:text="s" android:textColor="@color/text_primary" android:textSize="16sp" />
+
+                    <Button android:id="@+id/btnKeyExcl" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn_accent" android:text="!" android:textColor="@color/text_primary" android:textSize="18sp" />
+                    <Button android:id="@+id/btnKeyAt" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="@" android:textColor="@color/text_primary" android:textSize="16sp" />
+                    <Button android:id="@+id/btnKeyHash" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="#" android:textColor="@color/text_primary" android:textSize="16sp" />
+                    <Button android:id="@+id/btnKeyQuest" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="?" android:textColor="@color/text_primary" android:textSize="16sp" />
+                </GridLayout>
+            </LinearLayout>
+
+            <!-- Editing & Navigation Controls -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="EDITING &amp; NAVIGATION"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <GridLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:columnCount="4">
+
+                    <Button android:id="@+id/btnBack" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="⌫ Back" android:textColor="@color/text_primary" android:textSize="12sp" />
+                    <Button android:id="@+id/btnEnter" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn_accent" android:text="⏎ Enter" android:textColor="@color/text_primary" android:textSize="12sp" />
+                    <Button android:id="@+id/btnTab" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="⇥ Tab" android:textColor="@color/text_primary" android:textSize="12sp" />
+                    <Button android:id="@+id/btnEsc" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="Esc" android:textColor="@color/text_primary" android:textSize="12sp" />
+
+                    <Button android:id="@+id/btnSpace" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="Space" android:textColor="@color/text_primary" android:textSize="12sp" />
+                    <Button android:id="@+id/btnDel" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="Del" android:textColor="@color/text_primary" android:textSize="12sp" />
+                    <Button android:id="@+id/btnWin" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="⊞ Win" android:textColor="@color/text_primary" android:textSize="12sp" />
+                    <Button android:id="@+id/btnTaskMgr" android:layout_width="0dp" android:layout_height="48dp" android:layout_columnWeight="1" android:layout_margin="3dp" android:background="@drawable/bg_btn" android:text="TaskMgr" android:textColor="@color/text_primary" android:textSize="11sp" />
+                </GridLayout>
+
+                <!-- Arrow Cluster -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:layout_marginTop="10dp">
+
+                    <Button
+                        android:id="@+id/btnUp"
+                        android:layout_width="72dp"
+                        android:layout_height="44dp"
+                        android:layout_gravity="center_horizontal"
+                        android:background="@drawable/bg_btn"
+                        android:text="▲"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="4dp">
+
+                        <Button
+                            android:id="@+id/btnLeft"
+                            android:layout_width="72dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_btn"
+                            android:text="◀"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                        <Button
+                            android:id="@+id/btnDown"
+                            android:layout_width="72dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="6dp"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/bg_btn"
+                            android:text="▼"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                        <Button
+                            android:id="@+id/btnRight"
+                            android:layout_width="72dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_btn"
+                            android:text="▶"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Touchpad Trackpad -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MOUSE TRACKPAD"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"/>
+
+                <View
+                    android:id="@+id/viewTrackpad"
+                    android:layout_width="match_parent"
+                    android:layout_height="140dp"
+                    android:background="@drawable/bg_input" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp">
+
+                    <Button
+                        android:id="@+id/btnLeftClick"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_btn"
+                        android:text="Left Click"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/btnRightClick"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_btn"
+                        android:text="Right Click"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
