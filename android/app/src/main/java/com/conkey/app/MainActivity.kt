@@ -61,7 +61,6 @@ class MainActivity : Activity() {
     private lateinit var pillDevice: View
     private lateinit var dotStatus: View
     private lateinit var tvDeviceName: TextView
-    private lateinit var etTextInput: EditText
     private lateinit var webViewKeyboard: WebView
 
     // Bluetooth HID Engine (Primary - Serverless, Zero Software on Laptop)
@@ -142,7 +141,6 @@ class MainActivity : Activity() {
         pillDevice = findViewById(R.id.pillDevice)
         dotStatus = findViewById(R.id.dotStatus)
         tvDeviceName = findViewById(R.id.tvDeviceName)
-        etTextInput = findViewById(R.id.etTextInput)
         webViewKeyboard = findViewById(R.id.webViewKeyboard)
 
         pillDevice.setOnClickListener {
@@ -153,30 +151,6 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.btnSettings).setOnClickListener {
             vibrate(15)
             showConnectionMenu()
-        }
-
-        findViewById<Button>(R.id.btnSendText).setOnClickListener {
-            val text = etTextInput.text.toString()
-            if (text.isNotEmpty()) {
-                vibrate(15)
-                sendText(text)
-                etTextInput.setText("")
-            }
-        }
-
-        etTextInput.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_SEND || actionId == EditorInfo.IME_ACTION_DONE) {
-                val text = etTextInput.text.toString()
-                if (text.isNotEmpty()) {
-                    vibrate(15)
-                    sendText(text)
-                    etTextInput.setText("")
-                }
-                sendKey("ENTER")
-                true
-            } else {
-                false
-            }
         }
     }
 
@@ -317,8 +291,9 @@ class MainActivity : Activity() {
     }
 
     private fun updateStatusUi() {
+        val hidConnected = hidManager?.isConnected() == true
         when {
-            hidManager?.isConnected() == true -> {
+            hidConnected -> {
                 val dev = hidManager?.getConnectedDevice()
                 val devName = try { dev?.name ?: dev?.address ?: "Laptop" } catch (e: SecurityException) { "Laptop" }
                 tvDeviceName.text = "$devName (BT HID)"
@@ -329,14 +304,19 @@ class MainActivity : Activity() {
                 dotStatus.setBackgroundColor(Color.parseColor("#10B981")) // Green
             }
             isHidRegistered -> {
-                tvDeviceName.text = "Bluetooth HID Ready (Tap to Pair)"
-                dotStatus.setBackgroundColor(Color.parseColor("#3B82F6")) // Blue
+                tvDeviceName.text = "Bluetooth HID Ready"
+                dotStatus.setBackgroundColor(Color.parseColor("#38BDF8")) // Sky Blue
             }
             else -> {
                 tvDeviceName.text = "Tap to Connect / Pair Laptop"
                 dotStatus.setBackgroundColor(Color.parseColor("#EF4444")) // Red
             }
         }
+
+        val safeHost = currentHost.replace("'", "\\'")
+        val safeName = deviceName.replace("'", "\\'")
+        val js = "if(window.onConnectionStatusChanged) window.onConnectionStatusChanged($hidConnected, $isWifiConnected, '$safeHost', '$safeName');"
+        webViewKeyboard.evaluateJavascript(js, null)
     }
 
     @SuppressLint("MissingPermission")
@@ -822,14 +802,56 @@ class MainActivity : Activity() {
 
     inner class KeyboardBridge {
         @JavascriptInterface
+        fun getHostIp(): String = currentHost
+
+        @JavascriptInterface
+        fun getHostPort(): Int = currentPort
+
+        @JavascriptInterface
+        fun isWifiConnected(): Boolean = isWifiConnected
+
+        @JavascriptInterface
+        fun isHidConnected(): Boolean = hidManager?.isConnected() == true
+
+        @JavascriptInterface
+        fun openConnectionMenu() {
+            runOnUiThread {
+                showConnectionMenu()
+            }
+        }
+
+        @JavascriptInterface
+        fun sendMouseTouch(normX: Float, normY: Float, click: Boolean) {
+            val payload = JSONObject().apply {
+                put("x", (normX * 1920).toInt())
+                put("y", (normY * 1200).toInt())
+                put("click", click)
+            }
+            if (isWifiConnected && webSocket != null) {
+                sendWifiCommand("mouse_touch", payload)
+            }
+        }
+
+        @JavascriptInterface
+        fun sendMouseMoveAbs(normX: Float, normY: Float) {
+            val payload = JSONObject().apply {
+                put("x", (normX * 1920).toInt())
+                put("y", (normY * 1200).toInt())
+            }
+            if (isWifiConnected && webSocket != null) {
+                sendWifiCommand("mouse_move_abs", payload)
+            }
+        }
+
+        @JavascriptInterface
         fun sendKey(key: String) {
-            vibrate(12)
+            vibrate(10)
             this@MainActivity.sendKey(key)
         }
 
         @JavascriptInterface
         fun sendCombo(modsJson: String, key: String) {
-            vibrate(18)
+            vibrate(16)
             val modsArray = JSONArray(modsJson)
             val modsList = mutableListOf<String>()
             for (i in 0 until modsArray.length()) {
@@ -840,7 +862,7 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun sendText(text: String) {
-            vibrate(12)
+            vibrate(10)
             this@MainActivity.sendText(text)
         }
 
@@ -851,7 +873,7 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun sendMouseClick(button: String) {
-            vibrate(15)
+            vibrate(14)
             this@MainActivity.sendMouseClick(button)
         }
 

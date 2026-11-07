@@ -7,14 +7,14 @@
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
-    <!-- Top App & Navigation Bar (Padded safely below camera cutout / notch) -->
+    <!-- Top App & Navigation Bar (Notch & Cutout Safe) -->
     <LinearLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:background="@color/surface"
         android:gravity="center_vertical"
-        android:paddingHorizontal="12dp">
+        android:paddingHorizontal="14dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -23,17 +23,18 @@
             android:textColor="@color/accent"
             android:textSize="17sp"
             android:textStyle="bold"
-            android:layout_marginEnd="10dp"/>
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginEnd="12dp"/>
 
         <!-- Interactive Connection Status Pill -->
         <LinearLayout
             android:id="@+id/pillDevice"
             android:layout_width="0dp"
-            android:layout_height="36dp"
+            android:layout_height="34dp"
             android:layout_weight="1"
             android:background="@drawable/bg_pill"
             android:gravity="center_vertical"
-            android:paddingHorizontal="10dp"
+            android:paddingHorizontal="12dp"
             android:clickable="true"
             android:focusable="true">
 
@@ -53,7 +54,7 @@
                 android:maxLines="1"
                 android:text="Searching Laptop..."
                 android:textColor="@color/text_primary"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -61,59 +62,23 @@
                 android:layout_height="wrap_content"
                 android:text="▼"
                 android:textColor="@color/text_secondary"
-                android:textSize="10sp"
+                android:textSize="9sp"
                 android:layout_marginStart="4dp"/>
         </LinearLayout>
 
-        <!-- Settings & Network Selection Button -->
+        <!-- Settings / Connection Button -->
         <Button
             android:id="@+id/btnSettings"
-            android:layout_width="38dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="6dp"
+            android:layout_width="36dp"
+            android:layout_height="34dp"
+            android:layout_marginStart="8dp"
             android:background="@drawable/bg_btn"
             android:text="⚙"
             android:textColor="@color/text_primary"
-            android:textSize="15sp" />
+            android:textSize="14sp" />
     </LinearLayout>
 
-    <!-- Direct Smart Typing Bar (Phone Keyboard + Voice Dictation) -->
-    <LinearLayout
-        android:id="@+id/typingBar"
-        android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:background="@color/surface"
-        android:paddingHorizontal="10dp"
-        android:paddingBottom="6dp"
-        android:gravity="center_vertical">
-
-        <EditText
-            android:id="@+id/etTextInput"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:background="@drawable/bg_input"
-            android:hint="Type or dictate using phone keyboard..."
-            android:imeOptions="actionSend"
-            android:inputType="text|textMultiLine"
-            android:paddingHorizontal="10dp"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_secondary"
-            android:textSize="13sp" />
-
-        <Button
-            android:id="@+id/btnSendText"
-            android:layout_width="58dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="6dp"
-            android:background="@drawable/bg_btn_accent"
-            android:text="Send"
-            android:textColor="@color/text_primary"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <!-- Virtual Keyboard, Hotkeys & Touchpad (WebView) -->
+    <!-- Unified Split View: Live Screen Stream + Keyboard / Touchpad -->
     <WebView
         android:id="@+id/webViewKeyboard"
         android:layout_width="match_parent"

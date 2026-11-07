@@ -65,6 +65,19 @@ class MouseScrollCommand:
 
 
 @dataclass(frozen=True)
+class MouseMoveAbsCommand:
+    x: int
+    y: int
+
+
+@dataclass(frozen=True)
+class MouseTouchCommand:
+    x: int
+    y: int
+    click: bool = True
+
+
+@dataclass(frozen=True)
 class PingCommand:
     client_time: float
 
@@ -77,6 +90,8 @@ Command = (
     | KeyUpCommand
     | KeyComboCommand
     | MouseMoveCommand
+    | MouseMoveAbsCommand
+    | MouseTouchCommand
     | MouseClickCommand
     | MouseScrollCommand
     | PingCommand
@@ -171,6 +186,23 @@ def parse_command(raw_json: str | bytes | dict) -> Command:
         except (ValueError, TypeError) as err:
             raise ProtocolError("mouse_scroll dy must be integer") from err
         return MouseScrollCommand(dy=dy)
+
+    if cmd_type == "mouse_move_abs":
+        try:
+            x = int(payload.get("x", 0))
+            y = int(payload.get("y", 0))
+        except (ValueError, TypeError) as err:
+            raise ProtocolError("mouse_move_abs x and y must be integers") from err
+        return MouseMoveAbsCommand(x=x, y=y)
+
+    if cmd_type == "mouse_touch":
+        try:
+            x = int(payload.get("x", 0))
+            y = int(payload.get("y", 0))
+            click = bool(payload.get("click", True))
+        except (ValueError, TypeError) as err:
+            raise ProtocolError("mouse_touch coordinates must be integers") from err
+        return MouseTouchCommand(x=x, y=y, click=click)
 
     if cmd_type == "ping":
         client_time = float(payload.get("timestamp", time.time()))

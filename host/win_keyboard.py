@@ -346,6 +346,12 @@ def mouse_move(dx: int, dy: int) -> None:
         ctypes.windll.user32.mouse_event(MOUSEEVENTF_MOVE, dx, dy, 0, 0)
 
 
+def mouse_move_abs(x: int, y: int) -> None:
+    """Sets cursor to absolute screen coordinates."""
+    ensure_desktop()
+    ctypes.windll.user32.SetCursorPos(int(x), int(y))
+
+
 def mouse_click(button: str = "left") -> None:
     ensure_desktop()
     btn = button.lower()

@@ -30,12 +30,15 @@ from host.protocol import (
     KeyUpCommand,
     KeyComboCommand,
     MouseMoveCommand,
+    MouseMoveAbsCommand,
+    MouseTouchCommand,
     MouseClickCommand,
     MouseScrollCommand,
     PingCommand,
     SessionState,
 )
 from host import win_keyboard
+from host import screen_stream
 
 logging.basicConfig(
     level=logging.INFO,
@@ -121,9 +124,58 @@ class ConKeyServer:
         self.app.router.add_get("/ws", self.handle_ws)
         self.app.router.add_get("/api/info", self.handle_info)
         self.app.router.add_get("/api/device", self.handle_device)
+        self.app.router.add_get("/api/screen_info", self.handle_screen_info)
+        self.app.router.add_get("/api/screenshot", self.handle_screenshot)
+        self.app.router.add_get("/stream.mjpg", self.handle_screen_stream)
         self.app.router.add_get("/download/conkey.apk", self.handle_download_apk)
         if self.static_dir.exists():
             self.app.router.add_static("/static/", path=str(self.static_dir), name="static")
+
+    async def handle_screen_info(self, request: web.Request) -> web.Response:
+        w, h = screen_stream.get_screen_resolution()
+        return web.json_response({
+            "width": w,
+            "height": h,
+            "status": "ready"
+        }, headers={"Access-Control-Allow-Origin": "*"})
+
+    async def handle_screenshot(self, request: web.Request) -> web.Response:
+        frame = screen_stream.capture_frame_jpeg(max_width=960, quality=70)
+        if not frame:
+            return web.Response(status=500, text="Could not capture screen")
+        return web.Response(
+            body=frame,
+            content_type="image/jpeg",
+            headers={"Access-Control-Allow-Origin": "*", "Cache-Control": "no-cache"}
+        )
+
+    async def handle_screen_stream(self, request: web.Request) -> web.StreamResponse:
+        response = web.StreamResponse(
+            status=200,
+            reason="OK",
+            headers={
+                "Content-Type": "multipart/x-mixed-replace; boundary=frame",
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+                "Access-Control-Allow-Origin": "*",
+            }
+        )
+        await response.prepare(request)
+
+        try:
+            while True:
+                frame = screen_stream.capture_frame_jpeg(max_width=960, quality=65)
+                if frame:
+                    await response.write(
+                        b"--frame\r\n"
+                        b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
+                    )
+                await asyncio.sleep(0.06)  # ~16 fps
+        except (ConnectionResetError, asyncio.CancelledError):
+            pass
+
+        return response
 
     async def handle_index(self, request: web.Request) -> web.Response:
         index_file = self.static_dir / "index.html"
@@ -262,6 +314,14 @@ class ConKeyServer:
 
         elif isinstance(cmd, MouseMoveCommand):
             win_keyboard.mouse_move(cmd.dx, cmd.dy)
+
+        elif isinstance(cmd, MouseMoveAbsCommand):
+            win_keyboard.mouse_move_abs(cmd.x, cmd.y)
+
+        elif isinstance(cmd, MouseTouchCommand):
+            win_keyboard.mouse_move_abs(cmd.x, cmd.y)
+            if cmd.click:
+                win_keyboard.mouse_click("left")
 
         elif isinstance(cmd, MouseClickCommand):
             win_keyboard.mouse_click(cmd.button)

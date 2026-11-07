@@ -3,23 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ConKey - Precision Controller</title>
-  <link rel="stylesheet" href="simple-keyboard.css">
+  <title>ConKey Pro Controller</title>
   <style>
     :root {
-      --bg-canvas: #0c0e12;
-      --surface-1: #14171f;
-      --surface-2: #1c202a;
-      --surface-active: #272c3a;
-      --border-subtle: #262b37;
-      --border-bold: #384052;
-      --border-deep: #0a0c10;
-      --text-main: #f0f3f8;
-      --text-muted: #8b95a8;
-      --accent-blue: #2563eb;
-      --accent-blue-active: #1d4ed8;
+      --bg: #090a0f;
+      --surface-1: #11141c;
+      --surface-2: #181d28;
+      --surface-key: #1e2330;
+      --surface-key-active: #2b3346;
+      --surface-toolbar: #131722;
+      --border-subtle: #222838;
+      --border-focus: #38bdf8;
+      --text-main: #f8fafc;
+      --text-dim: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #0284c7;
+      --accent-sky: #38bdf8;
       --accent-amber: #f59e0b;
       --accent-emerald: #10b981;
+      --radius-key: 7px;
+      --radius-panel: 10px;
     }
 
     * {
@@ -29,14 +32,14 @@
       touch-action: manipulation;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
     }
 
     html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background-color: var(--bg-canvas);
+      background-color: var(--bg);
       color: var(--text-main);
     }
 
@@ -44,261 +47,368 @@
       display: flex;
       flex-direction: column;
       padding: 4px;
+      gap: 5px;
+    }
+
+    /* =========================================================================
+       TOP HALF: LIVE DESKTOP SCREEN VIEWFINDER
+       ========================================================================= */
+    .screen-panel {
+      flex: 1.05;
+      min-height: 140px;
+      background: #000000;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-panel);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.8), 0 2px 8px rgba(0, 0, 0, 0.4);
+      transition: flex 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .screen-panel.collapsed {
+      flex: 0 0 34px !important;
+      min-height: 34px !important;
+    }
+
+    .screen-panel.maximized {
+      flex: 3 !important;
+    }
+
+    /* Screen Image Viewport */
+    .screen-viewport {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #111520 0%, #000000 100%);
+      cursor: crosshair;
+    }
+
+    .screen-img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: block;
+      image-rendering: -webkit-optimize-contrast;
+      transition: opacity 0.2s ease;
+    }
+
+    /* Offline Ambient HUD */
+    .screen-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--text-dim);
+      padding: 12px;
+      text-align: center;
+      background: radial-gradient(circle at center, #141824 0%, #080a0f 100%);
+    }
+
+    .screen-placeholder-icon {
+      font-size: 28px;
+      opacity: 0.8;
+    }
+
+    .screen-placeholder-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .screen-placeholder-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      max-width: 240px;
+      line-height: 1.4;
+    }
+
+    .hud-btn {
+      margin-top: 4px;
+      background: var(--surface-2);
+      color: var(--accent-sky);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Screen Top Inset Overlay Bar */
+    .screen-overlay-bar {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .screen-badge {
+      pointer-events: auto;
+      background: rgba(13, 16, 24, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 6px var(--accent-emerald);
+    }
+
+    .screen-controls {
+      pointer-events: auto;
+      display: flex;
       gap: 4px;
     }
 
-    /* Tactile Mode Deck Tabs */
-    .deck-nav {
+    .screen-ctrl-btn {
+      background: rgba(13, 16, 24, 0.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      width: 26px;
+      height: 24px;
+      color: var(--text-dim);
+      font-size: 11px;
       display: flex;
-      gap: 4px;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+
+    .screen-ctrl-btn:active {
+      background: var(--accent-blue);
+      color: #fff;
+    }
+
+    /* =========================================================================
+       MINIMAL SEGMENTED CONTROLLER SWITCHER (Navigation)
+       ========================================================================= */
+    .controller-nav {
+      display: flex;
       background: var(--surface-1);
-      border: 1.5px solid var(--border-subtle);
+      border: 1px solid var(--border-subtle);
       border-radius: 8px;
       padding: 3px;
       flex-shrink: 0;
+      gap: 4px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
     }
 
-    .deck-tab {
+    .nav-segment {
       flex: 1;
       height: 32px;
       background: transparent;
-      color: var(--text-muted);
+      color: var(--text-dim);
       border: none;
       border-radius: 6px;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.2px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+      gap: 6px;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    .deck-tab.active {
-      background: var(--surface-2);
+    .nav-segment.active {
+      background: var(--surface-key);
       color: var(--text-main);
-      border: 1px solid var(--border-bold);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
     }
 
-    .deck-tab:active {
-      transform: scale(0.97);
-    }
-
-    /* Container for Decks */
-    .decks-container {
-      flex: 1;
+    /* =========================================================================
+       BOTTOM HALF: CONTROLLER AREA (KEYBOARD & TOUCHPAD)
+       ========================================================================= */
+    .controller-stage {
+      flex: 1.25;
       position: relative;
       overflow: hidden;
       display: flex;
       flex-direction: column;
     }
 
-    .deck-pane {
+    .deck-panel {
       display: none;
       width: 100%;
       height: 100%;
       flex-direction: column;
     }
 
-    .deck-pane.active {
+    .deck-panel.active {
       display: flex;
     }
 
-    /* DECK 1: KEYBOARD DECK */
-    .hotkey-bar {
-      display: flex;
-      gap: 4px;
-      overflow-x: auto;
-      padding-bottom: 3px;
-      scrollbar-width: none;
-      flex-shrink: 0;
-    }
-    .hotkey-bar::-webkit-scrollbar { display: none; }
-
-    .hotkey-chip {
-      flex: 1;
-      min-width: 52px;
-      height: 32px;
-      background: var(--surface-1);
-      color: var(--text-main);
-      border: 1px solid var(--border-subtle);
-      border-bottom: 2.5px solid var(--border-deep);
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 11px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: transform 0.05s, background 0.1s;
-    }
-
-    .hotkey-chip:active {
-      transform: translateY(2px);
-      border-bottom-width: 1px;
-      background: var(--accent-blue) !important;
-      color: #ffffff !important;
-    }
-
-    .hotkey-chip.accent {
-      background: #192b4d;
-      border-color: #2b4980;
-      color: #93c5fd;
-    }
-
-    /* Simple Keyboard Customization */
-    .simple-keyboard {
+    /* =========================================================================
+       OPTION 1: GBOARD-STYLE PC HYBRID KEYBOARD
+       ========================================================================= */
+    .keyboard-wrapper {
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: space-evenly;
-      background-color: transparent !important;
-      padding: 0 !important;
-      max-width: 100%;
+      gap: 3px;
+      justify-content: space-between;
     }
 
-    .hg-theme-default .hg-row {
-      margin-bottom: 3px !important;
+    /* PC Utility Toolbar Row (Esc, Modifiers, Shortcuts) */
+    .pc-toolbar {
       display: flex;
       gap: 3px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      flex-shrink: 0;
+      padding-bottom: 1px;
     }
+    .pc-toolbar::-webkit-scrollbar { display: none; }
 
-    .hg-theme-default .hg-button {
-      background: var(--surface-1) !important;
-      color: var(--text-main) !important;
-      border: 1px solid var(--border-subtle) !important;
-      border-bottom: 3px solid var(--border-deep) !important;
-      border-radius: 6px !important;
-      height: clamp(36px, 6.4vh, 46px) !important;
-      font-size: 13px !important;
-      font-weight: 600 !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      flex-grow: 1;
-      position: relative;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
-      transition: transform 0.04s, background 0.06s;
-    }
-
-    .hg-theme-default .hg-button:active {
-      transform: translateY(2px) !important;
-      border-bottom: 1px solid var(--border-deep) !important;
-      background: var(--accent-blue) !important;
-      color: #ffffff !important;
-      border-color: var(--accent-blue) !important;
-    }
-
-    /* Active Modifiers (Ctrl, Alt, Shift, Win) */
-    .hg-button-modifier-active {
-      background: #2b2313 !important;
-      color: #fbbf24 !important;
-      border-color: #f59e0b !important;
-      border-bottom-color: #78350f !important;
-      font-weight: 800 !important;
-    }
-
-    .hg-button-modifier-active::after {
-      content: "";
-      position: absolute;
-      top: 3px;
-      right: 3px;
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: #f59e0b;
-      box-shadow: 0 0 4px #f59e0b;
-    }
-
-    .hg-button-space { flex-grow: 4 !important; }
-    .hg-button-tab { max-width: 48px; font-size: 11px !important; }
-    .hg-button-lock { max-width: 48px; font-size: 11px !important; }
-    .hg-button-shift { max-width: 56px; font-size: 11px !important; }
-    .hg-button-enter {
-      max-width: 68px;
-      background: var(--accent-blue) !important;
-      border-color: #3b82f6 !important;
-      border-bottom-color: #1e3a8a !important;
-      font-size: 11px !important;
-      font-weight: 700 !important;
-    }
-    .hg-button-bksp { max-width: 48px; font-size: 13px !important; }
-    .hg-button-esc { max-width: 42px; font-size: 11px !important; }
-    .hg-button-control, .hg-button-alt, .hg-button-win { max-width: 44px; font-size: 11px !important; font-weight: 700; }
-
-    /* DECK 2: PRO HOTKEYS & F-KEYS */
-    .cards-deck {
+    .tool-key {
       flex: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding-right: 2px;
-    }
-
-    .action-card {
-      background: var(--surface-1);
-      border: 1.5px solid var(--border-subtle);
-      border-radius: 8px;
-      padding: 7px;
-    }
-
-    .card-header-label {
-      font-size: 10px;
-      font-weight: 800;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      margin-bottom: 6px;
-    }
-
-    .btn-matrix-4 {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 4px;
-    }
-
-    .btn-matrix-6 {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 4px;
-    }
-
-    .tactile-btn {
-      height: 38px;
-      background: var(--surface-2);
-      color: var(--text-main);
+      min-width: 44px;
+      height: 28px;
+      background: var(--surface-toolbar);
+      color: var(--text-dim);
       border: 1px solid var(--border-subtle);
-      border-bottom: 2.5px solid var(--border-deep);
-      border-radius: 6px;
+      border-radius: 5px;
       font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
+      font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: transform 0.05s, background 0.08s;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.08s ease;
+      white-space: nowrap;
     }
 
-    .tactile-btn:active {
-      transform: translateY(2px);
-      border-bottom-width: 1px;
+    .tool-key:active {
+      transform: scale(0.95);
+      background: var(--surface-key-active);
+      color: var(--text-main);
+    }
+
+    .tool-key.armed {
+      background: #2b2313 !important;
+      color: #fbbf24 !important;
+      border-color: var(--accent-amber) !important;
+    }
+
+    .tool-key.armed::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent-amber);
+      box-shadow: 0 0 4px var(--accent-amber);
+    }
+
+    .tool-key.action-chip {
+      background: #141c2b;
+      color: var(--accent-sky);
+      border-color: #1e2c44;
+    }
+
+    /* Gboard-style Virtual Key Rows */
+    .key-row {
+      display: flex;
+      gap: 3px;
+      width: 100%;
+      flex: 1;
+      max-height: 44px;
+    }
+
+    .key {
+      flex: 1;
+      background: var(--surface-key);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-key);
+      font-size: 15px;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 1.5px 2px rgba(0, 0, 0, 0.35);
+      transition: transform 0.04s, background-color 0.05s;
+      position: relative;
+    }
+
+    .key:active {
+      transform: scale(0.94);
+      background-color: var(--surface-key-active);
+      border-color: var(--accent-sky);
+    }
+
+    .key .hint {
+      position: absolute;
+      top: 2px;
+      right: 3px;
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .key-special {
+      background: #171b25;
+      color: var(--text-dim);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .key-accent {
       background: var(--accent-blue);
       color: #ffffff;
+      border-color: #0284c7;
+      font-weight: 700;
     }
 
-    .tactile-btn.accent {
-      background: #192b4d;
-      border-color: #2b4980;
-      color: #93c5fd;
+    .key-accent:active {
+      background: #0369a1 !important;
     }
 
-    /* DECK 3: TOUCHPAD & MOUSE */
-    .touchpad-box {
+    .key-space { flex: 3.5; }
+    .key-enter { flex: 1.6; }
+    .key-shift { flex: 1.4; }
+    .key-bksp { flex: 1.4; }
+    .key-mod { flex: 1.1; font-size: 11px; }
+
+    /* =========================================================================
+       OPTION 2: EXPANSIVE PRECISION TOUCHPAD
+       ========================================================================= */
+    .touchpad-deck {
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -313,409 +423,530 @@
       min-height: 140px;
     }
 
-    .touch-surface {
+    .glide-canvas {
       flex: 1;
       background: var(--surface-1);
       background-image: radial-gradient(var(--border-subtle) 1.2px, transparent 1.2px);
       background-size: 18px 18px;
-      border: 1.5px dashed var(--border-bold);
-      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-panel);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: var(--text-muted);
+      color: var(--text-dim);
       font-size: 12px;
       font-weight: 600;
       touch-action: none;
       position: relative;
+      box-shadow: inset 0 1px 4px rgba(0,0,0,0.4);
     }
 
-    .touch-surface:active {
-      border-color: var(--accent-blue);
-      background-color: #12161f;
+    .glide-canvas:active {
+      border-color: var(--accent-sky);
+      background-color: #121622;
     }
 
-    .scroll-strip {
-      width: 44px;
+    .scroll-rail {
+      width: 42px;
       background: var(--surface-1);
-      border: 1.5px solid var(--border-subtle);
-      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-panel);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       color: var(--text-muted);
       font-size: 10px;
-      font-weight: 700;
-      line-height: 1.3;
+      font-weight: 800;
+      line-height: 1.4;
       touch-action: none;
     }
 
-    .scroll-strip:active {
-      background: #1e293b;
-      color: var(--accent-blue);
+    .scroll-rail:active {
+      background: #1e2638;
+      color: var(--accent-sky);
+      border-color: var(--accent-sky);
     }
 
-    .mouse-actions-row {
+    .mouse-bar {
       display: flex;
-      gap: 6px;
-      height: 46px;
-    }
-
-    .mouse-action-btn {
-      flex: 1;
-      background: var(--surface-1);
-      color: var(--text-main);
-      border: 1px solid var(--border-subtle);
-      border-bottom: 3px solid var(--border-deep);
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .mouse-action-btn:active {
-      transform: translateY(2px);
-      border-bottom-width: 1px;
-      background: var(--accent-blue);
-      color: #ffffff;
-    }
-
-    /* DECK 4: NUMPAD */
-    .numpad-matrix {
-      flex: 1;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
       gap: 5px;
-      max-height: 340px;
-      margin: auto 0;
+      height: 44px;
+      flex-shrink: 0;
     }
 
-    .num-key {
-      height: 52px;
-      background: var(--surface-1);
+    .mouse-btn {
+      background: var(--surface-key);
       color: var(--text-main);
       border: 1px solid var(--border-subtle);
-      border-bottom: 3px solid var(--border-deep);
-      border-radius: 6px;
-      font-size: 18px;
+      border-radius: var(--radius-key);
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 1.5px 2px rgba(0, 0, 0, 0.35);
+      transition: transform 0.04s, background-color 0.05s;
     }
 
-    .num-key:active {
-      transform: translateY(2px);
-      border-bottom-width: 1px;
-      background: var(--accent-blue);
+    .mouse-btn:active {
+      transform: scale(0.96);
+      background-color: var(--accent-blue);
       color: #ffffff;
     }
 
-    .num-key.accent {
-      background: var(--accent-blue);
-      border-color: #3b82f6;
-      border-bottom-color: #1e3a8a;
-      color: #ffffff;
-    }
+    .mouse-btn.left { flex: 2; }
+    .mouse-btn.mid { flex: 1; font-size: 11px; }
+    .mouse-btn.right { flex: 1.5; }
 
-    #errorBanner {
+    /* Direct Typing Modal Bar (Optional Slide-Down) */
+    .typing-bar {
       display: none;
-      background: #7f1d1d;
-      color: #fecaca;
-      padding: 6px;
-      font-size: 11px;
-      border-radius: 4px;
-      margin-bottom: 4px;
-      word-break: break-all;
+      gap: 4px;
+      background: var(--surface-toolbar);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 4px 6px;
+      margin-bottom: 2px;
+    }
+
+    .typing-input {
+      flex: 1;
+      height: 32px;
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 0 8px;
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .typing-input:focus {
+      border-color: var(--accent-sky);
+    }
+
+    .typing-send-btn {
+      height: 32px;
+      padding: 0 12px;
+      background: var(--accent-blue);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-  <div id="errorBanner"></div>
+  <!-- =========================================================================
+       TOP HALF: LIVE DESKTOP SCREEN VIEWFINDER
+       ========================================================================= -->
+  <div id="screenPanel" class="screen-panel">
+    <!-- Screen Inset Overlay Badge & Controls -->
+    <div class="screen-overlay-bar">
+      <div class="screen-badge">
+        <span class="badge-dot" id="liveDot"></span>
+        <span id="screenStatusText">LIVE SCREEN</span>
+      </div>
+      <div class="screen-controls">
+        <button class="screen-ctrl-btn" id="btnTouchMode" title="Direct Touch Click" onclick="toggleDirectTouch()">👆</button>
+        <button class="screen-ctrl-btn" id="btnRefreshStream" title="Reconnect Screen Stream" onclick="refreshScreenStream()">↻</button>
+        <button class="screen-ctrl-btn" id="btnResizeScreen" title="Expand / Collapse View" onclick="toggleScreenSize()">⤢</button>
+      </div>
+    </div>
 
-  <!-- Mode Deck Switcher Tabs -->
-  <div class="deck-nav">
-    <button class="deck-tab active" onclick="switchDeck('keyboard')">⌨ Keyboard</button>
-    <button class="deck-tab" onclick="switchDeck('hotkeys')">⚡ Hotkeys &amp; F-Keys</button>
-    <button class="deck-tab" onclick="switchDeck('touchpad')">🖲 Touchpad</button>
-    <button class="deck-tab" onclick="switchDeck('numpad')">🔢 Numpad</button>
+    <!-- Active Screen Stream Viewport -->
+    <div id="screenViewport" class="screen-viewport">
+      <img id="screenImg" class="screen-img" src="" alt="Desktop Screen Stream" style="display: none;" />
+
+      <!-- Ambient Offline Placeholder -->
+      <div id="screenPlaceholder" class="screen-placeholder">
+        <div class="screen-placeholder-icon">🖥️</div>
+        <div class="screen-placeholder-title">Live Desktop Mirror</div>
+        <div class="screen-placeholder-sub">Connect to Wi-Fi to view laptop screen in real time with touch controls.</div>
+        <button class="hud-btn" onclick="openPairingHub()">Connect Wi-Fi Stream</button>
+      </div>
+    </div>
   </div>
 
-  <div class="decks-container">
+  <!-- Direct Typing Bar (Toggled from keyboard toolbar) -->
+  <div id="typingBar" class="typing-bar">
+    <input type="text" id="directTextInput" class="typing-input" placeholder="Type or dictate using phone keyboard..." />
+    <button class="typing-send-btn" onclick="sendDirectText()">Send</button>
+  </div>
 
-    <!-- DECK 1: FULL PC KEYBOARD -->
-    <div id="deck-keyboard" class="deck-pane active">
-      <!-- One-Tap Hotkeys Chip Bar -->
-      <div class="hotkey-bar">
-        <button class="hotkey-chip accent" onclick="triggerCombo(['CTRL'], 'C')">Ctrl+C</button>
-        <button class="hotkey-chip accent" onclick="triggerCombo(['CTRL'], 'V')">Ctrl+V</button>
-        <button class="hotkey-chip" onclick="triggerCombo(['CTRL'], 'X')">Ctrl+X</button>
-        <button class="hotkey-chip" onclick="triggerCombo(['CTRL'], 'Z')">Ctrl+Z</button>
-        <button class="hotkey-chip" onclick="triggerCombo(['CTRL'], 'A')">Ctrl+A</button>
-        <button class="hotkey-chip" onclick="triggerCombo(['CTRL'], 'S')">Ctrl+S</button>
-        <button class="hotkey-chip accent" onclick="triggerCombo(['ALT'], 'TAB')">Alt+Tab</button>
-        <button class="hotkey-chip" onclick="triggerCombo(['WIN'], 'D')">Win+D</button>
-        <button class="hotkey-chip" onclick="triggerCombo(['CTRL', 'SHIFT'], 'ESCAPE')">TaskMgr</button>
+  <!-- =========================================================================
+       MINIMAL SEGMENTED CONTROLLER SWITCHER (Navigation)
+       ========================================================================= -->
+  <div class="controller-nav">
+    <button id="navKey" class="nav-segment active" onclick="switchController('keyboard')">
+      <span>⌨ Keyboard</span>
+    </button>
+    <button id="navTouch" class="nav-segment" onclick="switchController('touchpad')">
+      <span>🖲 Touchpad</span>
+    </button>
+  </div>
+
+  <!-- =========================================================================
+       BOTTOM HALF: CONTROLLER AREA
+       ========================================================================= -->
+  <div class="controller-stage">
+
+    <!-- DECK 1: GBOARD-STYLE PC HYBRID KEYBOARD -->
+    <div id="deckKeyboard" class="deck-panel active">
+      <div class="keyboard-wrapper">
+        
+        <!-- PC Utility Toolbar Row (Essential PC Modifiers & Shortcuts) -->
+        <div class="pc-toolbar">
+          <button class="tool-key" id="modCtrl" onclick="toggleModifier('CTRL')">Ctrl</button>
+          <button class="tool-key" id="modAlt" onclick="toggleModifier('ALT')">Alt</button>
+          <button class="tool-key" id="modWin" onclick="toggleModifier('WIN')">⊞ Win</button>
+          <button class="tool-key" onclick="triggerKey('ESCAPE')">Esc</button>
+          <button class="tool-key" onclick="triggerKey('TAB')">Tab</button>
+          <button class="tool-key action-chip" onclick="triggerCombo(['CTRL'], 'C')">Ctrl+C</button>
+          <button class="tool-key action-chip" onclick="triggerCombo(['CTRL'], 'V')">Ctrl+V</button>
+          <button class="tool-key action-chip" onclick="triggerCombo(['ALT'], 'TAB')">Alt+Tab</button>
+          <button class="tool-key action-chip" onclick="triggerCombo(['WIN'], 'D')">Win+D</button>
+          <button class="tool-key" onclick="toggleTypingBar()">💬</button>
+        </div>
+
+        <!-- ALPHA KEYBOARD VIEW (DEFAULT) -->
+        <div id="layoutAlpha" style="display: flex; flex-direction: column; gap: 3px; flex: 1;">
+          <!-- Row 1 -->
+          <div class="key-row">
+            <button class="key" onclick="handleAlphaKey('q', 'Q')"><span class="hint">1</span>q</button>
+            <button class="key" onclick="handleAlphaKey('w', 'W')"><span class="hint">2</span>w</button>
+            <button class="key" onclick="handleAlphaKey('e', 'E')"><span class="hint">3</span>e</button>
+            <button class="key" onclick="handleAlphaKey('r', 'R')"><span class="hint">4</span>r</button>
+            <button class="key" onclick="handleAlphaKey('t', 'T')"><span class="hint">5</span>t</button>
+            <button class="key" onclick="handleAlphaKey('y', 'Y')"><span class="hint">6</span>y</button>
+            <button class="key" onclick="handleAlphaKey('u', 'U')"><span class="hint">7</span>u</button>
+            <button class="key" onclick="handleAlphaKey('i', 'I')"><span class="hint">8</span>i</button>
+            <button class="key" onclick="handleAlphaKey('o', 'O')"><span class="hint">9</span>o</button>
+            <button class="key" onclick="handleAlphaKey('p', 'P')"><span class="hint">0</span>p</button>
+          </div>
+
+          <!-- Row 2 -->
+          <div class="key-row">
+            <button class="key" onclick="handleAlphaKey('a', 'A')">a</button>
+            <button class="key" onclick="handleAlphaKey('s', 'S')">s</button>
+            <button class="key" onclick="handleAlphaKey('d', 'D')">d</button>
+            <button class="key" onclick="handleAlphaKey('f', 'F')">f</button>
+            <button class="key" onclick="handleAlphaKey('g', 'G')">g</button>
+            <button class="key" onclick="handleAlphaKey('h', 'H')">h</button>
+            <button class="key" onclick="handleAlphaKey('j', 'J')">j</button>
+            <button class="key" onclick="handleAlphaKey('k', 'K')">k</button>
+            <button class="key" onclick="handleAlphaKey('l', 'L')">l</button>
+          </div>
+
+          <!-- Row 3 -->
+          <div class="key-row">
+            <button class="key key-special key-shift" id="btnShift" onclick="toggleShift()">⇧</button>
+            <button class="key" onclick="handleAlphaKey('z', 'Z')">z</button>
+            <button class="key" onclick="handleAlphaKey('x', 'X')">x</button>
+            <button class="key" onclick="handleAlphaKey('c', 'C')">c</button>
+            <button class="key" onclick="handleAlphaKey('v', 'V')">v</button>
+            <button class="key" onclick="handleAlphaKey('b', 'B')">b</button>
+            <button class="key" onclick="handleAlphaKey('n', 'N')">n</button>
+            <button class="key" onclick="handleAlphaKey('m', 'M')">m</button>
+            <button class="key key-special key-bksp" onclick="triggerKey('BACKSPACE')">⌫</button>
+          </div>
+
+          <!-- Row 4 -->
+          <div class="key-row">
+            <button class="key key-special key-mod" onclick="switchKeyboardMode('symbols')">?123</button>
+            <button class="key key-special key-mod" onclick="triggerKey(',')">,</button>
+            <button class="key key-space" onclick="triggerKey('SPACE')">Space</button>
+            <button class="key key-special key-mod" onclick="triggerKey('.')">.</button>
+            <button class="key key-accent key-enter" onclick="triggerKey('ENTER')">⏎</button>
+          </div>
+        </div>
+
+        <!-- NUMBERS & SYMBOLS VIEW (?123) -->
+        <div id="layoutSymbols" style="display: none; flex-direction: column; gap: 3px; flex: 1;">
+          <!-- Number Row -->
+          <div class="key-row">
+            <button class="key" onclick="triggerKey('1')">1</button>
+            <button class="key" onclick="triggerKey('2')">2</button>
+            <button class="key" onclick="triggerKey('3')">3</button>
+            <button class="key" onclick="triggerKey('4')">4</button>
+            <button class="key" onclick="triggerKey('5')">5</button>
+            <button class="key" onclick="triggerKey('6')">6</button>
+            <button class="key" onclick="triggerKey('7')">7</button>
+            <button class="key" onclick="triggerKey('8')">8</button>
+            <button class="key" onclick="triggerKey('9')">9</button>
+            <button class="key" onclick="triggerKey('0')">0</button>
+          </div>
+
+          <!-- Symbols Row 1 -->
+          <div class="key-row">
+            <button class="key" onclick="triggerKey('@')">@</button>
+            <button class="key" onclick="triggerKey('#')">#</button>
+            <button class="key" onclick="triggerKey('$')">$</button>
+            <button class="key" onclick="triggerKey('%')">%</button>
+            <button class="key" onclick="triggerKey('&')">&amp;</button>
+            <button class="key" onclick="triggerKey('-')">-</button>
+            <button class="key" onclick="triggerKey('+')">+</button>
+            <button class="key" onclick="triggerKey('(')">(</button>
+            <button class="key" onclick="triggerKey(')')">)</button>
+          </div>
+
+          <!-- Symbols Row 2 -->
+          <div class="key-row">
+            <button class="key key-special key-shift" onclick="triggerKey('DELETE')">Del</button>
+            <button class="key" onclick="triggerKey('*')">*</button>
+            <button class="key" onclick="triggerKey('\"')">"</button>
+            <button class="key" onclick="triggerKey('\'')">'</button>
+            <button class="key" onclick="triggerKey(':')">:</button>
+            <button class="key" onclick="triggerKey(';')">;</button>
+            <button class="key" onclick="triggerKey('!')">!</button>
+            <button class="key" onclick="triggerKey('?')">?</button>
+            <button class="key key-special key-bksp" onclick="triggerKey('BACKSPACE')">⌫</button>
+          </div>
+
+          <!-- Symbols Row 3 -->
+          <div class="key-row">
+            <button class="key key-special key-mod" onclick="switchKeyboardMode('alpha')">ABC</button>
+            <button class="key key-special key-mod" onclick="triggerKey('/')">/</button>
+            <button class="key key-space" onclick="triggerKey('SPACE')">Space</button>
+            <button class="key key-special key-mod" onclick="triggerKey('=')">=</button>
+            <button class="key key-accent key-enter" onclick="triggerKey('ENTER')">⏎</button>
+          </div>
+        </div>
+
       </div>
-
-      <!-- The Official Virtual Keyboard -->
-      <div class="simple-keyboard"></div>
     </div>
 
-    <!-- DECK 2: PRO HOTKEYS & F-KEYS DECK -->
-    <div id="deck-hotkeys" class="deck-pane">
-      <div class="cards-deck">
-        <div class="action-card">
-          <div class="card-header-label">Clipboard &amp; Document Editing</div>
-          <div class="btn-matrix-4">
-            <button class="tactile-btn accent" onclick="triggerCombo(['CTRL'], 'C')">Ctrl+C Copy</button>
-            <button class="tactile-btn accent" onclick="triggerCombo(['CTRL'], 'V')">Ctrl+V Paste</button>
-            <button class="tactile-btn" onclick="triggerCombo(['CTRL'], 'X')">Ctrl+X Cut</button>
-            <button class="tactile-btn" onclick="triggerCombo(['CTRL'], 'Z')">Ctrl+Z Undo</button>
-            <button class="tactile-btn" onclick="triggerCombo(['CTRL'], 'Y')">Ctrl+Y Redo</button>
-            <button class="tactile-btn" onclick="triggerCombo(['CTRL'], 'A')">Ctrl+A All</button>
-            <button class="tactile-btn" onclick="triggerCombo(['CTRL'], 'S')">Ctrl+S Save</button>
-            <button class="tactile-btn" onclick="triggerCombo(['CTRL'], 'F')">Ctrl+F Find</button>
-          </div>
-        </div>
-
-        <div class="action-card">
-          <div class="card-header-label">Windows &amp; Workspace Management</div>
-          <div class="btn-matrix-4">
-            <button class="tactile-btn accent" onclick="triggerCombo(['ALT'], 'TAB')">Alt+Tab Switch</button>
-            <button class="tactile-btn" onclick="triggerCombo(['WIN'], 'D')">Win+D Desktop</button>
-            <button class="tactile-btn" onclick="triggerCombo(['WIN'], 'E')">Win+E Files</button>
-            <button class="tactile-btn" onclick="triggerCombo(['WIN'], 'L')">Win+L Lock</button>
-            <button class="tactile-btn" onclick="triggerCombo(['WIN'], 'R')">Win+R Run</button>
-            <button class="tactile-btn" onclick="triggerCombo(['CTRL', 'SHIFT'], 'ESCAPE')">Task Manager</button>
-            <button class="tactile-btn" onclick="triggerCombo(['ALT'], 'F4')">Alt+F4 Close</button>
-            <button class="tactile-btn" onclick="triggerKey('WIN')">⊞ Win Start</button>
-          </div>
-        </div>
-
-        <div class="action-card">
-          <div class="card-header-label">Function Keys (F1 - F12)</div>
-          <div class="btn-matrix-6">
-            <button class="tactile-btn" onclick="triggerKey('F1')">F1</button>
-            <button class="tactile-btn" onclick="triggerKey('F2')">F2</button>
-            <button class="tactile-btn" onclick="triggerKey('F3')">F3</button>
-            <button class="tactile-btn" onclick="triggerKey('F4')">F4</button>
-            <button class="tactile-btn accent" onclick="triggerKey('F5')">F5 ↻</button>
-            <button class="tactile-btn" onclick="triggerKey('F6')">F6</button>
-            <button class="tactile-btn" onclick="triggerKey('F7')">F7</button>
-            <button class="tactile-btn" onclick="triggerKey('F8')">F8</button>
-            <button class="tactile-btn" onclick="triggerKey('F9')">F9</button>
-            <button class="tactile-btn" onclick="triggerKey('F10')">F10</button>
-            <button class="tactile-btn accent" onclick="triggerKey('F11')">F11 ⛶</button>
-            <button class="tactile-btn" onclick="triggerKey('F12')">F12 ⚙</button>
-          </div>
-        </div>
-
-        <div class="action-card">
-          <div class="card-header-label">Navigation &amp; Editing Keys</div>
-          <div class="btn-matrix-4">
-            <button class="tactile-btn" onclick="triggerKey('HOME')">Home</button>
-            <button class="tactile-btn" onclick="triggerKey('END')">End</button>
-            <button class="tactile-btn" onclick="triggerKey('PAGEUP')">PgUp</button>
-            <button class="tactile-btn" onclick="triggerKey('PAGEDOWN')">PgDn</button>
-            <button class="tactile-btn" onclick="triggerKey('INSERT')">Insert</button>
-            <button class="tactile-btn" onclick="triggerKey('DELETE')">Delete</button>
-            <button class="tactile-btn" onclick="triggerKey('PRINTSCREEN')">PrtScn</button>
-            <button class="tactile-btn" onclick="triggerKey('ESCAPE')">Esc</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- DECK 3: PRECISION TOUCHPAD -->
-    <div id="deck-touchpad" class="deck-pane">
-      <div class="touchpad-box">
+    <!-- DECK 2: EXPANSIVE PRECISION TOUCHPAD -->
+    <div id="deckTouchpad" class="deck-panel">
+      <div class="touchpad-deck">
         <div class="touchpad-arena">
-          <div id="touchpadSurface" class="touch-surface">
-            <span>Slide to Move Pointer</span>
-            <span style="font-size: 10px; color: var(--text-muted); margin-top: 5px;">Tap: Left Click • Two Fingers: Right Click</span>
+          <div id="glideCanvas" class="glide-canvas">
+            <span>Glide Cursor</span>
+            <span style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Tap: Left Click • Two Fingers: Right Click</span>
           </div>
-          <div id="touchpadScroll" class="scroll-strip">
+          <div id="scrollRail" class="scroll-rail">
             <span>▲<br>S<br>C<br>R<br>O<br>L<br>L<br>▼</span>
           </div>
         </div>
-        <div class="mouse-actions-row">
-          <button class="mouse-action-btn" onclick="triggerMouseClick('left')">Left Click</button>
-          <button class="mouse-action-btn" onclick="triggerMouseClick('double')">Double Click</button>
-          <button class="mouse-action-btn" onclick="triggerMouseClick('middle')">Middle</button>
-          <button class="mouse-action-btn" onclick="triggerMouseClick('right')">Right Click</button>
+        <div class="mouse-bar">
+          <button class="mouse-btn left" onclick="triggerMouseClick('left')">Left Click</button>
+          <button class="mouse-btn mid" onclick="triggerMouseClick('middle')">Middle</button>
+          <button class="mouse-btn right" onclick="triggerMouseClick('right')">Right Click</button>
         </div>
-      </div>
-    </div>
-
-    <!-- DECK 4: ACCOUNTING NUMPAD -->
-    <div id="deck-numpad" class="deck-pane">
-      <div class="numpad-matrix">
-        <button class="num-key" onclick="triggerKey('NUMLOCK')">Num</button>
-        <button class="num-key" onclick="triggerKey('/')">/</button>
-        <button class="num-key" onclick="triggerKey('*')">*</button>
-        <button class="num-key" onclick="triggerKey('-')">-</button>
-
-        <button class="num-key" onclick="triggerKey('7')">7</button>
-        <button class="num-key" onclick="triggerKey('8')">8</button>
-        <button class="num-key" onclick="triggerKey('9')">9</button>
-        <button class="num-key" onclick="triggerKey('+')">+</button>
-
-        <button class="num-key" onclick="triggerKey('4')">4</button>
-        <button class="num-key" onclick="triggerKey('5')">5</button>
-        <button class="num-key" onclick="triggerKey('6')">6</button>
-        <button class="num-key accent" style="grid-row: span 2;" onclick="triggerKey('ENTER')">⏎</button>
-
-        <button class="num-key" onclick="triggerKey('1')">1</button>
-        <button class="num-key" onclick="triggerKey('2')">2</button>
-        <button class="num-key" onclick="triggerKey('3')">3</button>
-
-        <button class="num-key" style="grid-column: span 2;" onclick="triggerKey('0')">0</button>
-        <button class="num-key" onclick="triggerKey('.')">.</button>
-        <button class="num-key" onclick="triggerKey('BACKSPACE')">⌫</button>
       </div>
     </div>
 
   </div>
 
-  <script src="simple-keyboard.js"></script>
   <script>
-    window.onerror = function(msg, url, line) {
-      const banner = document.getElementById('errorBanner');
-      if (banner) {
-        banner.style.display = 'block';
-        banner.innerText = 'JS Error: ' + msg + ' (L' + line + ')';
+    // =========================================================================
+    // STATE & INITIALIZATION
+    // =========================================================================
+    let isArmedCtrl = false;
+    let isArmedAlt = false;
+    let isArmedWin = false;
+    let isShiftActive = false;
+    let isDirectTouchClick = true;
+    let currentMode = "keyboard"; // "keyboard" | "touchpad"
+    let screenState = "normal";   // "normal" | "maximized" | "collapsed"
+
+    const screenImg = document.getElementById("screenImg");
+    const screenPlaceholder = document.getElementById("screenPlaceholder");
+    const liveDot = document.getElementById("liveDot");
+    const screenStatusText = document.getElementById("screenStatusText");
+    const screenPanel = document.getElementById("screenPanel");
+
+    // Initialize Stream
+    function initScreenStream() {
+      const host = (window.ConKeyBridge && window.ConKeyBridge.getHostIp()) || "10.60.12.147";
+      const isWifi = (window.ConKeyBridge && window.ConKeyBridge.isWifiConnected()) || false;
+      
+      if (isWifi) {
+        loadStream(host);
+      } else {
+        showScreenOffline();
       }
-      return false;
-    };
-
-    function switchDeck(deckName) {
-      document.querySelectorAll('.deck-tab').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.deck-pane').forEach(d => d.classList.remove('active'));
-
-      const targetBtn = Array.from(document.querySelectorAll('.deck-tab')).find(b => b.innerText.toLowerCase().includes(deckName));
-      if (targetBtn) targetBtn.classList.add('active');
-
-      const targetDeck = document.getElementById('deck-' + deckName);
-      if (targetDeck) targetDeck.classList.add('active');
-
-      if (window.ConKeyBridge) window.ConKeyBridge.vibrate(10);
     }
 
-    let isCtrl = false;
-    let isAlt = false;
-    let isShift = false;
-    let isWin = false;
-
-    const KeyboardClass = (window.SimpleKeyboard && window.SimpleKeyboard.default) 
-      ? window.SimpleKeyboard.default 
-      : (window.SimpleKeyboard || null);
-
-    const keyboard = new KeyboardClass({
-      useTouchEvents: true,
-      useMouseEvents: true,
-      preventMouseDownDefault: true,
-      layout: {
-        default: [
-          "{esc} 1 2 3 4 5 6 7 8 9 0 - = {bksp}",
-          "{tab} q w e r t y u i o p [ ] \\",
-          "{lock} a s d f g h j k l ; ' {enter}",
-          "{shift} z x c v b n m , . / {del}",
-          "{control} {win} {alt} {space} {alt} {left} {up} {down} {right}"
-        ],
-        shift: [
-          "{esc} ! @ # $ % ^ & * ( ) _ + {bksp}",
-          "{tab} Q W E R T Y U I O P { } |",
-          "{lock} A S D F G H J K L : \" {enter}",
-          "{shift} Z X C V B N M < > ? {del}",
-          "{control} {win} {alt} {space} {alt} {left} {up} {down} {right}"
-        ]
-      },
-      display: {
-        "{esc}": "Esc",
-        "{bksp}": "⌫",
-        "{enter}": "⏎ Enter",
-        "{tab}": "Tab",
-        "{lock}": "Caps",
-        "{shift}": "⇧ Shift",
-        "{control}": "Ctrl",
-        "{alt}": "Alt",
-        "{win}": "⊞",
-        "{space}": "Space",
-        "{del}": "Del",
-        "{left}": "◀",
-        "{up}": "▲",
-        "{down}": "▼",
-        "{right}": "▶"
-      },
-      onKeyPress: button => handleKeyPress(button)
-    });
-
-    function handleKeyPress(button) {
-      if (button === "{shift}") {
-        isShift = !isShift;
-        keyboard.setOptions({ layoutName: isShift ? "shift" : "default" });
-        updateModifierStyles();
-        return;
-      }
-      if (button === "{lock}") {
-        const current = keyboard.options.layoutName;
-        keyboard.setOptions({ layoutName: current === "default" ? "shift" : "default" });
-        return;
-      }
-      if (button === "{control}") {
-        isCtrl = !isCtrl;
-        updateModifierStyles();
-        return;
-      }
-      if (button === "{alt}") {
-        isAlt = !isAlt;
-        updateModifierStyles();
-        return;
-      }
-      if (button === "{win}") {
-        isWin = !isWin;
-        updateModifierStyles();
-        return;
-      }
-
-      const keyMap = {
-        "{esc}": "ESCAPE",
-        "{bksp}": "BACKSPACE",
-        "{enter}": "ENTER",
-        "{tab}": "TAB",
-        "{space}": "SPACE",
-        "{del}": "DELETE",
-        "{left}": "LEFT",
-        "{up}": "UP",
-        "{down}": "DOWN",
-        "{right}": "RIGHT"
+    function loadStream(host) {
+      screenImg.src = "http://" + host + ":8765/stream.mjpg?t=" + Date.now();
+      screenImg.onload = function() {
+        screenImg.style.display = "block";
+        screenPlaceholder.style.display = "none";
+        liveDot.style.background = "var(--accent-emerald)";
+        liveDot.style.boxShadow = "0 0 6px var(--accent-emerald)";
+        screenStatusText.innerText = "LIVE SCREEN";
       };
+      screenImg.onerror = function() {
+        showScreenOffline();
+      };
+    }
 
-      const keyName = keyMap[button] || button;
+    function showScreenOffline() {
+      screenImg.style.display = "none";
+      screenPlaceholder.style.display = "flex";
+      liveDot.style.background = "#f59e0b";
+      liveDot.style.boxShadow = "none";
+      screenStatusText.innerText = "STREAM OFFLINE";
+    }
+
+    function refreshScreenStream() {
+      vibrate(10);
+      const host = (window.ConKeyBridge && window.ConKeyBridge.getHostIp()) || "10.60.12.147";
+      loadStream(host);
+    }
+
+    function openPairingHub() {
+      if (window.ConKeyBridge) {
+        window.ConKeyBridge.openConnectionMenu();
+      }
+    }
+
+    // Called from Android MainActivity when connection status changes
+    window.onConnectionStatusChanged = function(hidConnected, wifiConnected, host, name) {
+      if (wifiConnected) {
+        loadStream(host);
+      } else {
+        showScreenOffline();
+      }
+    };
+
+    // =========================================================================
+    // DIRECT TOUCH SCREEN INTERACTIONS
+    // =========================================================================
+    const screenViewport = document.getElementById("screenViewport");
+
+    screenViewport.addEventListener("touchstart", function(e) {
+      if (e.touches.length === 1 && screenImg.style.display !== "none") {
+        const rect = screenImg.getBoundingClientRect();
+        const touch = e.touches[0];
+
+        if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+            touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+          
+          const normX = (touch.clientX - rect.left) / rect.width;
+          const normY = (touch.clientY - rect.top) / rect.height;
+
+          if (window.ConKeyBridge) {
+            window.ConKeyBridge.sendMouseTouch(normX, normY, isDirectTouchClick);
+          }
+        }
+      }
+    }, { passive: false });
+
+    function toggleDirectTouch() {
+      isDirectTouchClick = !isDirectTouchClick;
+      vibrate(10);
+      const btn = document.getElementById("btnTouchMode");
+      btn.style.color = isDirectTouchClick ? "var(--accent-sky)" : "var(--text-muted)";
+    }
+
+    function toggleScreenSize() {
+      vibrate(10);
+      if (screenState === "normal") {
+        screenPanel.classList.add("collapsed");
+        screenState = "collapsed";
+      } else if (screenState === "collapsed") {
+        screenPanel.classList.remove("collapsed");
+        screenPanel.classList.add("maximized");
+        screenState = "maximized";
+      } else {
+        screenPanel.classList.remove("maximized");
+        screenState = "normal";
+      }
+    }
+
+    // =========================================================================
+    // NAVIGATION CONTROLLER SWITCHER
+    // =========================================================================
+    function switchController(mode) {
+      currentMode = mode;
+      vibrate(12);
+
+      document.getElementById("navKey").classList.toggle("active", mode === "keyboard");
+      document.getElementById("navTouch").classList.toggle("active", mode === "touchpad");
+
+      document.getElementById("deckKeyboard").classList.toggle("active", mode === "keyboard");
+      document.getElementById("deckTouchpad").classList.toggle("active", mode === "touchpad");
+    }
+
+    // =========================================================================
+    // KEYBOARD MODES & MODIFIERS
+    // =========================================================================
+    function switchKeyboardMode(mode) {
+      vibrate(10);
+      const alphaLayout = document.getElementById("layoutAlpha");
+      const symbolsLayout = document.getElementById("layoutSymbols");
+
+      if (mode === "symbols") {
+        alphaLayout.style.display = "none";
+        symbolsLayout.style.display = "flex";
+      } else {
+        symbolsLayout.style.display = "none";
+        alphaLayout.style.display = "flex";
+      }
+    }
+
+    function toggleShift() {
+      isShiftActive = !isShiftActive;
+      vibrate(12);
+      const btnShift = document.getElementById("btnShift");
+      btnShift.style.background = isShiftActive ? "var(--accent-blue)" : "";
+      btnShift.style.color = isShiftActive ? "#ffffff" : "";
+
+      // Update letters case
+      document.querySelectorAll("#layoutAlpha .key").forEach(k => {
+        const textNode = Array.from(k.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
+        if (textNode) {
+          const char = textNode.nodeValue.trim();
+          if (char.length === 1 && /[a-zA-Z]/.test(char)) {
+            textNode.nodeValue = isShiftActive ? char.toUpperCase() : char.toLowerCase();
+          }
+        }
+      });
+    }
+
+    function toggleModifier(mod) {
+      vibrate(12);
+      if (mod === "CTRL") {
+        isArmedCtrl = !isArmedCtrl;
+        document.getElementById("modCtrl").classList.toggle("armed", isArmedCtrl);
+      } else if (mod === "ALT") {
+        isArmedAlt = !isArmedAlt;
+        document.getElementById("modAlt").classList.toggle("armed", isArmedAlt);
+      } else if (mod === "WIN") {
+        isArmedWin = !isArmedWin;
+        document.getElementById("modWin").classList.toggle("armed", isArmedWin);
+      }
+    }
+
+    function handleAlphaKey(lower, upper) {
+      const activeChar = isShiftActive ? upper : lower;
       const mods = [];
-      if (isCtrl) mods.push("CTRL");
-      if (isAlt) mods.push("ALT");
-      if (isWin) mods.push("WIN");
+      if (isArmedCtrl) mods.push("CTRL");
+      if (isArmedAlt) mods.push("ALT");
+      if (isArmedWin) mods.push("WIN");
 
       if (mods.length > 0) {
-        triggerCombo(mods, keyName.toUpperCase());
-        isCtrl = false;
-        isAlt = false;
-        isWin = false;
-        updateModifierStyles();
+        triggerCombo(mods, upper);
+        isArmedCtrl = false;
+        isArmedAlt = false;
+        isArmedWin = false;
+        document.getElementById("modCtrl").classList.remove("armed");
+        document.getElementById("modAlt").classList.remove("armed");
+        document.getElementById("modWin").classList.remove("armed");
       } else {
-        triggerKey(keyName);
+        triggerKey(activeChar);
       }
 
-      if (isShift) {
-        isShift = false;
-        keyboard.setOptions({ layoutName: "default" });
-        updateModifierStyles();
+      if (isShiftActive) {
+        toggleShift();
       }
     }
 
@@ -737,20 +968,45 @@
       }
     }
 
-    function updateModifierStyles() {
-      const ctrlBtn = document.querySelector(".hg-button-control");
-      const altBtns = document.querySelectorAll(".hg-button-alt");
-      const shiftBtns = document.querySelectorAll(".hg-button-shift");
-      const winBtn = document.querySelector(".hg-button-win");
-
-      if (ctrlBtn) ctrlBtn.classList.toggle("hg-button-modifier-active", isCtrl);
-      altBtns.forEach(b => b.classList.toggle("hg-button-modifier-active", isAlt));
-      shiftBtns.forEach(b => b.classList.toggle("hg-button-modifier-active", isShift));
-      if (winBtn) winBtn.classList.toggle("hg-button-modifier-active", isWin);
+    function toggleTypingBar() {
+      vibrate(10);
+      const bar = document.getElementById("typingBar");
+      const isVisible = bar.style.display === "flex";
+      bar.style.display = isVisible ? "none" : "flex";
+      if (!isVisible) {
+        document.getElementById("directTextInput").focus();
+      }
     }
 
-    // Touchpad Pointer Tracking
-    const pad = document.getElementById("touchpadSurface");
+    function sendDirectText() {
+      const input = document.getElementById("directTextInput");
+      const text = input.value;
+      if (text) {
+        vibrate(12);
+        if (window.ConKeyBridge) {
+          window.ConKeyBridge.sendText(text);
+        }
+        input.value = "";
+      }
+    }
+
+    document.getElementById("directTextInput").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        sendDirectText();
+        triggerKey("ENTER");
+      }
+    });
+
+    function vibrate(ms) {
+      if (window.ConKeyBridge) {
+        window.ConKeyBridge.vibrate(ms);
+      }
+    }
+
+    // =========================================================================
+    // TOUCHPAD GLIDE PHYSICS & SCROLL
+    // =========================================================================
+    const pad = document.getElementById("glideCanvas");
     let touchStartX = 0, touchStartY = 0;
     let lastTouchX = 0, lastTouchY = 0;
     let touchStartTime = 0;
@@ -802,22 +1058,22 @@
       }
     });
 
-    // Vertical Scroll Strip
-    const scrollStrip = document.getElementById("touchpadScroll");
+    // Vertical Scroll Rail
+    const scrollRail = document.getElementById("scrollRail");
     let lastScrollY = 0;
 
-    scrollStrip.addEventListener("touchstart", (e) => {
+    scrollRail.addEventListener("touchstart", (e) => {
       if (e.touches.length > 0) {
         lastScrollY = e.touches[0].clientY;
       }
     }, { passive: false });
 
-    scrollStrip.addEventListener("touchmove", (e) => {
+    scrollRail.addEventListener("touchmove", (e) => {
       e.preventDefault();
       if (e.touches.length > 0) {
         const cy = e.touches[0].clientY;
         const delta = cy - lastScrollY;
-        if (Math.abs(delta) >= 12) {
+        if (Math.abs(delta) >= 10) {
           const dir = delta < 0 ? 1 : -1;
           if (window.ConKeyBridge) {
             window.ConKeyBridge.sendMouseScroll(dir);
@@ -826,6 +1082,11 @@
         }
       }
     }, { passive: false });
+
+    // Startup
+    window.addEventListener("DOMContentLoaded", () => {
+      initScreenStream();
+    });
   </script>
 </body>
 </html>

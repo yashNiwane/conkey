@@ -40,6 +40,15 @@ def test_parse_mouse():
     assert isinstance(cmd_click, MouseClickCommand)
     assert cmd_click.button == "right"
 
+    cmd_abs = parse_command('{"type": "mouse_move_abs", "payload": {"x": 500, "y": 300}}')
+    assert cmd_abs.x == 500
+    assert cmd_abs.y == 300
+
+    cmd_touch = parse_command('{"type": "mouse_touch", "payload": {"x": 800, "y": 600, "click": true}}')
+    assert cmd_touch.x == 800
+    assert cmd_touch.y == 600
+    assert cmd_touch.click is True
+
 def test_parse_errors():
     with pytest.raises(ProtocolError):
         parse_command("not a json")
