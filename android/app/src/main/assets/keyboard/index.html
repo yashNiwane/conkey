@@ -728,7 +728,7 @@
         <div class="touchpad-arena">
           <div id="glideCanvas" class="glide-canvas">
             <span>Glide Cursor</span>
-            <span style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Tap: Left Click • Hold: Right Click</span>
+            <span style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Tap: Click • Glide: Move Cursor</span>
           </div>
           <div id="scrollRail" class="scroll-rail">
             <span>▲<br>S<br>C<br>R<br>O<br>L<br>L<br>▼</span>
@@ -919,7 +919,7 @@
     }
 
     // =========================================================================
-    // NAVIGATION CONTROLLER SWITCHER & HORIZONTAL SWIPE GESTURE
+    // NAVIGATION CONTROLLER SWITCHER
     // =========================================================================
     function switchController(mode) {
       if (currentMode === mode) return;
@@ -932,40 +932,6 @@
       document.getElementById("deckKeyboard").classList.toggle("active", mode === "keyboard");
       document.getElementById("deckTouchpad").classList.toggle("active", mode === "touchpad");
     }
-
-    // Horizontal Swipe Gesture Listener on Controller Stage
-    const stage = document.getElementById("controllerStage");
-    let swipeStartX = 0, swipeStartY = 0;
-    let isSwiping = false;
-
-    stage.addEventListener("touchstart", (e) => {
-      if (e.touches.length === 1) {
-        swipeStartX = e.touches[0].clientX;
-        swipeStartY = e.touches[0].clientY;
-        isSwiping = true;
-      }
-    }, { passive: true });
-
-    stage.addEventListener("touchend", (e) => {
-      if (!isSwiping || e.changedTouches.length === 0) return;
-      isSwiping = false;
-
-      const endX = e.changedTouches[0].clientX;
-      const endY = e.changedTouches[0].clientY;
-      const deltaX = endX - swipeStartX;
-      const deltaY = endY - swipeStartY;
-
-      // Detect strong horizontal swipe (at least 55px and predominantly horizontal)
-      if (Math.abs(deltaX) > 55 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
-        if (deltaX < 0 && currentMode === "keyboard") {
-          // Swipe Left -> Touchpad
-          switchController("touchpad");
-        } else if (deltaX > 0 && currentMode === "touchpad") {
-          // Swipe Right -> Keyboard
-          switchController("keyboard");
-        }
-      }
-    }, { passive: true });
 
     // =========================================================================
     // KEYBOARD MODES & MODIFIERS
@@ -1094,16 +1060,13 @@
     }
 
     // =========================================================================
-    // ONE-THUMB TOUCHPAD GLIDE, TAP CLICK & LONG-PRESS RIGHT CLICK
+    // TOUCHPAD GLIDE & TAP CLICK
     // =========================================================================
     const pad = document.getElementById("glideCanvas");
     let touchStartX = 0, touchStartY = 0;
     let lastTouchX = 0, lastTouchY = 0;
     let touchStartTime = 0;
     let touchMoved = false;
-    let longPressTimer = null;
-    let longPressFired = false;
-    let lastTapTime = 0;
 
     pad.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
@@ -1113,17 +1076,6 @@
         lastTouchY = touchStartY;
         touchStartTime = Date.now();
         touchMoved = false;
-        longPressFired = false;
-
-        // One-Thumb Long-Press Timer for Right Click (380ms hold without move)
-        clearTimeout(longPressTimer);
-        longPressTimer = setTimeout(() => {
-          if (!touchMoved) {
-            longPressFired = true;
-            vibrate(22);
-            triggerMouseClick("right");
-          }
-        }, 380);
       }
     }, { passive: false });
 
@@ -1139,7 +1091,6 @@
 
         if (Math.abs(cx - touchStartX) > 5 || Math.abs(cy - touchStartY) > 5) {
           touchMoved = true;
-          clearTimeout(longPressTimer);
         }
 
         if (window.ConKeyBridge && (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5)) {
@@ -1149,20 +1100,9 @@
     }, { passive: false });
 
     pad.addEventListener("touchend", (e) => {
-      clearTimeout(longPressTimer);
       const elapsed = Date.now() - touchStartTime;
-
-      if (!touchMoved && !longPressFired && elapsed < 260) {
-        const now = Date.now();
-        // Check for double-tap
-        if (now - lastTapTime < 300) {
-          triggerMouseClick("double");
-          lastTapTime = 0;
-        } else {
-          lastTapTime = now;
-          // Single tap = Left Click
-          triggerMouseClick("left");
-        }
+      if (!touchMoved && elapsed < 260) {
+        triggerMouseClick("left");
       }
     });
 
