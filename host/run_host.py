@@ -27,6 +27,15 @@ def is_port_in_use(port: int) -> bool:
         return s.connect_ex(("127.0.0.1", port)) == 0
 
 
+async def run_server(server: ConKeyServer):
+    await server.start()
+    try:
+        while True:
+            await asyncio.sleep(3600)
+    finally:
+        await server.stop()
+
+
 def main():
     parser = argparse.ArgumentParser(description="ConKey Laptop Keyboard Remote Host")
     parser.add_argument("--port", type=int, default=None, help="HTTP/WebSocket port")
@@ -49,12 +58,9 @@ def main():
     server = ConKeyServer(port=port, discovery_port=discovery_port, pin=pin)
 
     try:
-        asyncio.run(server.start())
-        # Keep alive until cancelled
-        asyncio.run(asyncio.Event().wait())
+        asyncio.run(run_server(server))
     except (KeyboardInterrupt, asyncio.CancelledError):
         print("\nStopping ConKey host...")
-        asyncio.run(server.stop())
 
 
 if __name__ == "__main__":
