@@ -1,13 +1,18 @@
 """
-Windows keyboard input simulation using Win32 SendInput via ctypes.
+Windows keyboard and mouse input simulation using Win32 SendInput via ctypes.
 Provides high-fidelity unicode typing, virtual key codes, modifier chords,
 and comprehensive PC keyboard keys (F1-F12, Numpad, Navigation, Media).
+Ensures attachment to interactive 'Default' desktop so inputs reach physical display.
 """
 
 import ctypes
 from ctypes import wintypes
+import logging
+import threading
 import time
 from typing import List, Optional
+
+logger = logging.getLogger("conkey.win_keyboard")
 
 # Win32 Constants
 INPUT_KEYBOARD = 1
@@ -26,6 +31,8 @@ MOUSEEVENTF_RIGHTUP = 0x0010
 MOUSEEVENTF_MIDDLEDOWN = 0x0020
 MOUSEEVENTF_MIDDLEUP = 0x0040
 MOUSEEVENTF_WHEEL = 0x0800
+
+GENERIC_ALL = 0x10000000
 
 # Virtual Key Codes
 VK_MAP = {
@@ -107,13 +114,14 @@ VK_MAP = {
     "NUMPAD7": 0x67,
     "NUMPAD8": 0x68,
     "NUMPAD9": 0x69,
-    "NUMPAD_MULTIPLY": 0x6A,
-    "NUMPAD_ADD": 0x6B,
-    "NUMPAD_SUBTRACT": 0x6D,
-    "NUMPAD_DECIMAL": 0x6E,
-    "NUMPAD_DIVIDE": 0x6F,
+    "MULTIPLY": 0x6A,
+    "ADD": 0x6B,
+    "SEPARATOR": 0x6C,
+    "SUBTRACT": 0x6D,
+    "DECIMAL": 0x6E,
+    "DIVIDE": 0x6F,
 
-    # Media keys
+    # Media & Volume
     "VOLUME_MUTE": 0xAD,
     "VOLUME_DOWN": 0xAE,
     "VOLUME_UP": 0xAF,
@@ -186,19 +194,50 @@ _SendInput = ctypes.windll.user32.SendInput
 _SendInput.argtypes = [wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
 _SendInput.restype = wintypes.UINT
 
+_desktop_lock = threading.Lock()
+_default_desktop = None
+
+
+def ensure_desktop() -> bool:
+    """
+    Attaches current thread to the user's interactive 'Default' desktop.
+    Critical when Python server is started via background runners or services,
+    ensuring SendInput injects into the physical display session.
+    """
+    global _default_desktop
+    try:
+        with _desktop_lock:
+            if not _default_desktop:
+                _default_desktop = ctypes.windll.user32.OpenDesktopW("Default", 0, False, GENERIC_ALL)
+            if _default_desktop:
+                if ctypes.windll.user32.SetThreadDesktop(_default_desktop) != 0:
+                    return True
+                # Re-open if cached handle stale
+                _default_desktop = ctypes.windll.user32.OpenDesktopW("Default", 0, False, GENERIC_ALL)
+                if _default_desktop:
+                    return ctypes.windll.user32.SetThreadDesktop(_default_desktop) != 0
+    except Exception as e:
+        logger.debug("ensure_desktop error: %s", e)
+    return False
+
 
 def _send_inputs(inputs: List[INPUT]) -> int:
     if not inputs:
         return 0
+    ensure_desktop()
     n = len(inputs)
     arr = (INPUT * n)(*inputs)
-    return _SendInput(n, arr, ctypes.sizeof(INPUT))
+    sent = _SendInput(n, arr, ctypes.sizeof(INPUT))
+    if sent != n:
+        err = ctypes.GetLastError()
+        logger.debug("SendInput: sent %d/%d (err: %d)", sent, n, err)
+    return sent
 
 
 def key_down(vk_or_name: str | int) -> None:
+    ensure_desktop()
     vk = VK_MAP.get(vk_or_name.upper(), 0) if isinstance(vk_or_name, str) else vk_or_name
     if not vk:
-        # If it's a single unicode char not in VK map, type it directly
         if isinstance(vk_or_name, str) and len(vk_or_name) == 1:
             type_char_unicode(vk_or_name)
             return
@@ -212,10 +251,14 @@ def key_down(vk_or_name: str | int) -> None:
         type=INPUT_KEYBOARD,
         ki=KEYBDINPUT(wVk=vk, wScan=0, dwFlags=flags, time=0, dwExtraInfo=0)
     )
-    _send_inputs([inp])
+    sent = _send_inputs([inp])
+    if sent == 0:
+        # Fallback to keybd_event
+        ctypes.windll.user32.keybd_event(vk, 0, flags, 0)
 
 
 def key_up(vk_or_name: str | int) -> None:
+    ensure_desktop()
     vk = VK_MAP.get(vk_or_name.upper(), 0) if isinstance(vk_or_name, str) else vk_or_name
     if not vk:
         if isinstance(vk_or_name, str) and len(vk_or_name) == 1:
@@ -230,11 +273,14 @@ def key_up(vk_or_name: str | int) -> None:
         type=INPUT_KEYBOARD,
         ki=KEYBDINPUT(wVk=vk, wScan=0, dwFlags=flags, time=0, dwExtraInfo=0)
     )
-    _send_inputs([inp])
+    sent = _send_inputs([inp])
+    if sent == 0:
+        # Fallback to keybd_event
+        ctypes.windll.user32.keybd_event(vk, 0, flags, 0)
 
 
 def press_key(vk_or_name: str | int, delay: float = 0.01) -> None:
-    # If single character symbol not mapped in VK_MAP, type it via Unicode
+    ensure_desktop()
     if isinstance(vk_or_name, str) and len(vk_or_name) == 1 and vk_or_name.upper() not in VK_MAP:
         type_char_unicode(vk_or_name)
         return
@@ -247,6 +293,7 @@ def press_key(vk_or_name: str | int, delay: float = 0.01) -> None:
 
 def key_combo(modifiers: List[str], key: str, delay: float = 0.01) -> None:
     """Presses a combination such as ['CTRL'], 'C' or ['ALT'], 'TAB'."""
+    ensure_desktop()
     for mod in modifiers:
         key_down(mod)
     try:
@@ -259,6 +306,7 @@ def key_combo(modifiers: List[str], key: str, delay: float = 0.01) -> None:
 
 def type_char_unicode(char: str) -> None:
     """Sends a single unicode character using KEYEVENTF_UNICODE."""
+    ensure_desktop()
     code = ord(char)
     inp_down = INPUT(
         type=INPUT_KEYBOARD,
@@ -273,10 +321,11 @@ def type_char_unicode(char: str) -> None:
 
 def type_text(text: str, inter_char_delay: float = 0.0) -> None:
     """Types a string of text character by character using Unicode injection."""
+    ensure_desktop()
     for char in text:
         if char == '\r':
             continue
-        if char == '\n':
+        elif char == '\n':
             press_key("ENTER")
         elif char == '\t':
             press_key("TAB")
@@ -287,14 +336,18 @@ def type_text(text: str, inter_char_delay: float = 0.0) -> None:
 
 
 def mouse_move(dx: int, dy: int) -> None:
+    ensure_desktop()
     inp = INPUT(
         type=INPUT_MOUSE,
         mi=MOUSEINPUT(dx=dx, dy=dy, mouseData=0, dwFlags=MOUSEEVENTF_MOVE, time=0, dwExtraInfo=0)
     )
-    _send_inputs([inp])
+    sent = _send_inputs([inp])
+    if sent == 0:
+        ctypes.windll.user32.mouse_event(MOUSEEVENTF_MOVE, dx, dy, 0, 0)
 
 
 def mouse_click(button: str = "left") -> None:
+    ensure_desktop()
     btn = button.lower()
     if btn == "left":
         down_flag, up_flag = MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP
@@ -312,13 +365,18 @@ def mouse_click(button: str = "left") -> None:
 
     inp_down = INPUT(type=INPUT_MOUSE, mi=MOUSEINPUT(dx=0, dy=0, mouseData=0, dwFlags=down_flag, time=0, dwExtraInfo=0))
     inp_up = INPUT(type=INPUT_MOUSE, mi=MOUSEINPUT(dx=0, dy=0, mouseData=0, dwFlags=up_flag, time=0, dwExtraInfo=0))
-    _send_inputs([inp_down, inp_up])
+    sent = _send_inputs([inp_down, inp_up])
+    if sent == 0:
+        ctypes.windll.user32.mouse_event(down_flag | up_flag, 0, 0, 0, 0)
 
 
 def mouse_scroll(dy: int) -> None:
+    ensure_desktop()
     wheel_amount = dy * 120
     inp = INPUT(
         type=INPUT_MOUSE,
         mi=MOUSEINPUT(dx=0, dy=0, mouseData=wheel_amount, dwFlags=MOUSEEVENTF_WHEEL, time=0, dwExtraInfo=0)
     )
-    _send_inputs([inp])
+    sent = _send_inputs([inp])
+    if sent == 0:
+        ctypes.windll.user32.mouse_event(MOUSEEVENTF_WHEEL, 0, 0, wheel_amount, 0)

@@ -73,6 +73,7 @@ class MainActivity : Activity() {
         .build()
     private var webSocket: WebSocket? = null
     private var isWifiConnected = false
+    private val isConnecting = AtomicBoolean(false)
 
     // Bluetooth Fallback
     private var bluetoothAdapter: BluetoothAdapter? = null
@@ -226,14 +227,15 @@ class MainActivity : Activity() {
 
     private fun startAutoReconnectScheduler() {
         autoReconnectScheduler.scheduleWithFixedDelay({
-            if (!isWifiConnected && !isBtConnected && !isScanning.get()) {
+            if (!isWifiConnected && !isConnecting.get() && !isBtConnected && !isScanning.get()) {
                 Log.d(TAG, "Auto-reconnect tick: attempting connection to $currentHost...")
                 probeAndConnect(currentHost, currentPort)
             }
-        }, 3, 3, TimeUnit.SECONDS)
+        }, 4, 4, TimeUnit.SECONDS)
     }
 
     private fun probeAndConnect(host: String, port: Int): Boolean {
+        if (isWifiConnected || isConnecting.get()) return true
         try {
             val fastClient = OkHttpClient.Builder().connectTimeout(600, TimeUnit.MILLISECONDS).build()
             val req = Request.Builder().url("http://$host:$port/api/device").build()
@@ -286,7 +288,7 @@ class MainActivity : Activity() {
                             val name = json.optString("name", ip)
                             val pin = json.optString("pin", currentPin)
 
-                            if (!isWifiConnected) {
+                            if (!isWifiConnected && !isConnecting.get()) {
                                 deviceName = name
                                 currentPin = pin
                                 currentHost = ip
@@ -310,6 +312,13 @@ class MainActivity : Activity() {
     // =========================================================================
 
     private fun connectToWifiServer(host: String, port: Int = 8765) {
+        if (isWifiConnected && currentHost == host && currentPort == port && webSocket != null) {
+            return
+        }
+        if (isConnecting.getAndSet(true)) {
+            return
+        }
+
         disconnectWifi()
         disconnectBluetooth()
 
@@ -339,6 +348,7 @@ class MainActivity : Activity() {
                         }
                         "auth_result" -> {
                             val success = json.optBoolean("success", false)
+                            isConnecting.set(false)
                             if (success) {
                                 isWifiConnected = true
                                 val name = json.optString("device_name", host)
@@ -363,6 +373,7 @@ class MainActivity : Activity() {
             }
 
             override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
+                isConnecting.set(false)
                 isWifiConnected = false
                 runOnUiThread {
                     tvDeviceName.text = "Disconnected (Tap to Connect)"
@@ -371,6 +382,7 @@ class MainActivity : Activity() {
             }
 
             override fun onClosed(ws: WebSocket, code: Int, reason: String) {
+                isConnecting.set(false)
                 isWifiConnected = false
                 runOnUiThread {
                     tvDeviceName.text = "Disconnected (Tap to Connect)"
@@ -381,6 +393,7 @@ class MainActivity : Activity() {
     }
 
     private fun disconnectWifi() {
+        isConnecting.set(false)
         isWifiConnected = false
         try {
             webSocket?.close(1000, "Switching transport")

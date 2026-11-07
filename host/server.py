@@ -237,6 +237,7 @@ class ConKeyServer:
             return
 
         # Operational commands
+        logger.info("Executing cmd: %s (%s)", type(cmd).__name__, getattr(cmd, 'key', getattr(cmd, 'text', getattr(cmd, 'button', ''))))
         if isinstance(cmd, TypeTextCommand):
             win_keyboard.type_text(cmd.text, cmd.delay)
             await ws.send_json({"type": "ack", "action": "type_text", "length": len(cmd.text)})
