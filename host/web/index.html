@@ -4,264 +4,838 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ConKey - PC Remote Keyboard</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/simple-keyboard.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #0f1115;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      color: #f3f4f6;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      padding: 6px;
+      gap: 5px;
+    }
+
+    /* Top App Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 42px;
+      background: #181b21;
+      padding: 0 10px;
+      border-radius: 8px;
+      border: 1px solid #2b303c;
+      flex-shrink: 0;
+    }
+    .brand {
+      font-weight: 800;
+      font-size: 16px;
+      color: #3b82f6;
+    }
+    .device-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #101318;
+      border: 1px solid #2b303c;
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .dot-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      display: inline-block;
+    }
+    .dot-status.connected {
+      background: #10b981;
+    }
+    .apk-link {
+      color: #3b82f6;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    /* Direct Typing Bar */
+    .typing-bar {
+      display: flex;
+      gap: 6px;
+      height: 40px;
+      flex-shrink: 0;
+    }
+    .typing-input {
+      flex: 1;
+      background: #181b21;
+      border: 1px solid #2b303c;
+      border-radius: 6px;
+      padding: 0 10px;
+      color: #f3f4f6;
+      font-size: 13px;
+      outline: none;
+    }
+    .typing-input:focus {
+      border-color: #3b82f6;
+    }
+    .typing-btn {
+      width: 60px;
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .typing-btn:active {
+      background: #1d4ed8;
+    }
+
+    /* Deck Tabs Header */
+    .tab-header {
+      display: flex;
+      gap: 4px;
+      background: #181b21;
+      border-radius: 7px;
+      padding: 3px;
+      border: 1px solid #2b303c;
+      flex-shrink: 0;
+    }
+    .tab-btn {
+      flex: 1;
+      height: 30px;
+      background: transparent;
+      color: #9ca3af;
+      border: none;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+    .tab-btn.active {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    /* Deck Views */
+    .deck-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .deck {
+      display: none;
+      width: 100%;
+      height: 100%;
+      flex-direction: column;
+    }
+    .deck.active {
+      display: flex;
+    }
+
+    /* Hotkeys Bar in Keyboard Deck */
+    .hotkey-bar {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+      flex-shrink: 0;
+    }
+    .hotkey-bar::-webkit-scrollbar { display: none; }
+
+    .hotkey-btn {
+      flex: 1;
+      min-width: 52px;
+      height: 34px;
+      background: #181b21;
+      color: #f3f4f6;
+      border: 1px solid #2b303c;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .hotkey-btn:active {
+      background: #3b82f6 !important;
+      color: #ffffff !important;
+      transform: scale(0.95);
+    }
+    .hotkey-btn.accent {
+      background: #1e3a8a;
+      border-color: #3b82f6;
+      color: #93c5fd;
+    }
+
+    /* Simple Keyboard Styling */
+    .simple-keyboard {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      background-color: transparent !important;
+      padding: 0 !important;
+      max-width: 100%;
+    }
+    .hg-theme-default .hg-row {
+      margin-bottom: 3px !important;
+      display: flex;
+      gap: 3px;
+    }
+    .hg-theme-default .hg-button {
+      background: #1c2028 !important;
+      color: #f3f4f6 !important;
+      border: 1px solid #2b303c !important;
+      border-bottom: 2px solid #14171d !important;
+      border-radius: 5px !important;
+      height: clamp(36px, 6.2vh, 46px) !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex-grow: 1;
+    }
+    .hg-theme-default .hg-button:active {
+      background: #3b82f6 !important;
+      color: #ffffff !important;
+      transform: translateY(1px) scale(0.96);
+    }
+    .hg-button-modifier-active {
+      background: #f59e0b !important;
+      color: #000000 !important;
+      font-weight: bold !important;
+    }
+    .hg-button-space { flex-grow: 4 !important; }
+    .hg-button-tab { max-width: 48px; font-size: 11px !important; }
+    .hg-button-lock { max-width: 48px; font-size: 11px !important; }
+    .hg-button-shift { max-width: 58px; font-size: 11px !important; }
+    .hg-button-enter { max-width: 68px; background: #2563eb !important; font-size: 11px !important; }
+    .hg-button-bksp { max-width: 48px; font-size: 13px !important; }
+    .hg-button-esc { max-width: 42px; font-size: 11px !important; }
+    .hg-button-control, .hg-button-alt, .hg-button-win { max-width: 44px; font-size: 11px !important; font-weight: bold; }
+
+    /* DECK 2: HOTKEYS & F-KEYS */
+    .cards-scroll {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 2px;
+    }
+    .card-section {
+      background: #14171d;
+      border: 1px solid #2b303c;
+      border-radius: 6px;
+      padding: 6px;
+    }
+    .card-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #9ca3af;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .grid-btns {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+    .grid-btns-6 {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 4px;
+    }
+    .action-btn {
+      height: 38px;
+      background: #1c2028;
+      color: #f3f4f6;
+      border: 1px solid #2b303c;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .action-btn:active {
+      background: #3b82f6;
+      color: #ffffff;
+    }
+    .action-btn.accent {
+      background: #1e3a8a;
+      border-color: #3b82f6;
+      color: #93c5fd;
+    }
+
+    /* DECK 3: TOUCHPAD */
+    .touchpad-deck {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      height: 100%;
+    }
+    .touchpad-main {
+      flex: 1;
+      display: flex;
+      gap: 6px;
+      min-height: 120px;
+    }
+    .touchpad-surface {
+      flex: 1;
+      background: #14171d;
+      border: 1.5px dashed #2b303c;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #6b7280;
+      font-size: 12px;
+      font-weight: 600;
+      touch-action: none;
+    }
+    .touchpad-surface:active {
+      border-color: #3b82f6;
+    }
+    .touchpad-scroll {
+      width: 44px;
+      background: #14171d;
+      border: 1px solid #2b303c;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      font-size: 10px;
+      font-weight: 700;
+      touch-action: none;
+    }
+    .touchpad-scroll:active {
+      background: #1e293b;
+      color: #3b82f6;
+    }
+    .mouse-btn-row {
+      display: flex;
+      gap: 6px;
+      height: 44px;
+    }
+    .mouse-btn {
+      flex: 1;
+      background: #1c2028;
+      color: #f3f4f6;
+      border: 1px solid #2b303c;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .mouse-btn:active {
+      background: #3b82f6;
+      color: #ffffff;
+    }
+
+    /* DECK 4: NUMPAD */
+    .numpad-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      max-height: 320px;
+      margin: auto 0;
+    }
+    .num-btn {
+      height: 52px;
+      background: #1c2028;
+      color: #f3f4f6;
+      border: 1px solid #2b303c;
+      border-radius: 6px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .num-btn:active {
+      background: #3b82f6;
+      color: #ffffff;
+    }
+    .num-btn.accent {
+      background: #2563eb;
+      color: #ffffff;
+    }
+  </style>
 </head>
 <body>
+
+  <!-- Top Header Bar -->
   <header>
-    <div class="brand">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="2" y="4" width="20" height="16" rx="2"/>
-        <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/>
-      </svg>
-      <span>ConKey</span>
-    </div>
+    <div class="brand">ConKey</div>
     <div class="device-pill">
-      <span id="statusDot" class="status-dot"></span>
+      <span id="dotStatus" class="dot-status"></span>
       <span id="deviceName">{{DEVICE_NAME}}</span>
     </div>
-    <a href="/download/conkey.apk" download style="color: var(--accent); font-size: 0.75rem; text-decoration: none; font-weight: 600;">Get APK</a>
+    <a href="/download/conkey.apk" class="apk-link" download>Download APK</a>
   </header>
 
-  <!-- Direct Smart Typing Bar -->
+  <!-- Direct Typing Bar -->
   <div class="typing-bar">
-    <input type="text" id="textInput" placeholder="Type or dictate with phone keyboard..." autocomplete="off">
-    <button id="sendTextBtn" class="btn-accent" style="min-width: 60px;">Send</button>
+    <input type="text" id="etTextInput" class="typing-input" placeholder="Type or dictate using phone keyboard..." autocomplete="off">
+    <button id="btnSendText" class="typing-btn">Send</button>
   </div>
 
-  <!-- Navigation Tab Bar -->
-  <div class="tab-bar">
-    <button class="tab-btn active" data-target="deckFullPC">Full PC</button>
-    <button class="tab-btn" data-target="deckShortcuts">Hotkeys</button>
-    <button class="tab-btn" data-target="deckFKeys">F-Keys &amp; Num</button>
-    <button class="tab-btn" data-target="deckTouchpad">Touchpad</button>
+  <!-- Deck Switcher Tabs -->
+  <div class="tab-header">
+    <button class="tab-btn active" onclick="switchDeck('keyboard')">⌨ Keyboard</button>
+    <button class="tab-btn" onclick="switchDeck('hotkeys')">⚡ Hotkeys &amp; F-Keys</button>
+    <button class="tab-btn" onclick="switchDeck('touchpad')">🖲 Touchpad</button>
+    <button class="tab-btn" onclick="switchDeck('numpad')">🔢 Numpad</button>
   </div>
 
-  <main>
-    <!-- DECK 1: FULL PC KEYBOARD (5 ROWS) -->
-    <div id="deckFullPC" class="deck active">
-      <!-- Row 1 -->
-      <div class="pc-row">
-        <button class="w-md" data-key="ESCAPE">Esc</button>
-        <button data-key="1">1</button>
-        <button data-key="2">2</button>
-        <button data-key="3">3</button>
-        <button data-key="4">4</button>
-        <button data-key="5">5</button>
-        <button data-key="6">6</button>
-        <button data-key="7">7</button>
-        <button data-key="8">8</button>
-        <button data-key="9">9</button>
-        <button data-key="0">0</button>
-        <button data-key="-">-</button>
-        <button data-key="=">=</button>
-        <button class="w-lg" data-key="BACKSPACE">⌫</button>
-      </div>
+  <div class="deck-container">
 
-      <!-- Row 2 -->
-      <div class="pc-row">
-        <button class="w-md" data-key="TAB">Tab</button>
-        <button data-key="Q">Q</button>
-        <button data-key="W">W</button>
-        <button data-key="E">E</button>
-        <button data-key="R">R</button>
-        <button data-key="T">T</button>
-        <button data-key="Y">Y</button>
-        <button data-key="U">U</button>
-        <button data-key="I">I</button>
-        <button data-key="O">O</button>
-        <button data-key="P">P</button>
-        <button data-key="[">[</button>
-        <button data-key="]">]</button>
-        <button data-key="\">\</button>
+    <!-- DECK 1: FULL PC KEYBOARD -->
+    <div id="deck-keyboard" class="deck active">
+      <div class="hotkey-bar">
+        <button class="hotkey-btn accent" onclick="triggerCombo(['CTRL'], 'C')">Ctrl+C</button>
+        <button class="hotkey-btn accent" onclick="triggerCombo(['CTRL'], 'V')">Ctrl+V</button>
+        <button class="hotkey-btn" onclick="triggerCombo(['CTRL'], 'X')">Ctrl+X</button>
+        <button class="hotkey-btn" onclick="triggerCombo(['CTRL'], 'Z')">Ctrl+Z</button>
+        <button class="hotkey-btn" onclick="triggerCombo(['CTRL'], 'A')">Ctrl+A</button>
+        <button class="hotkey-btn" onclick="triggerCombo(['CTRL'], 'S')">Ctrl+S</button>
+        <button class="hotkey-btn accent" onclick="triggerCombo(['ALT'], 'TAB')">Alt+Tab</button>
+        <button class="hotkey-btn" onclick="triggerCombo(['CTRL', 'SHIFT'], 'ESCAPE')">TaskMgr</button>
       </div>
+      <div class="simple-keyboard"></div>
+    </div>
 
-      <!-- Row 3 -->
-      <div class="pc-row">
-        <button class="w-md" data-key="CAPSLOCK">Caps</button>
-        <button class="btn-accent" data-key="A">A</button>
-        <button class="btn-accent" data-key="S">S</button>
-        <button data-key="D">D</button>
-        <button data-key="F">F</button>
-        <button data-key="G">G</button>
-        <button data-key="H">H</button>
-        <button data-key="J">J</button>
-        <button data-key="K">K</button>
-        <button data-key="L">L</button>
-        <button data-key=";">;</button>
-        <button data-key="'">'</button>
-        <button class="w-xl btn-accent" data-key="ENTER">⏎ Enter</button>
-      </div>
+    <!-- DECK 2: HOTKEYS & F-KEYS DECK -->
+    <div id="deck-hotkeys" class="deck">
+      <div class="cards-scroll">
+        <div class="card-section">
+          <div class="card-title">Clipboard &amp; Editing</div>
+          <div class="grid-btns">
+            <button class="action-btn accent" onclick="triggerCombo(['CTRL'], 'C')">Ctrl+C Copy</button>
+            <button class="action-btn accent" onclick="triggerCombo(['CTRL'], 'V')">Ctrl+V Paste</button>
+            <button class="action-btn" onclick="triggerCombo(['CTRL'], 'X')">Ctrl+X Cut</button>
+            <button class="action-btn" onclick="triggerCombo(['CTRL'], 'Z')">Ctrl+Z Undo</button>
+            <button class="action-btn" onclick="triggerCombo(['CTRL'], 'Y')">Ctrl+Y Redo</button>
+            <button class="action-btn" onclick="triggerCombo(['CTRL'], 'A')">Ctrl+A All</button>
+            <button class="action-btn" onclick="triggerCombo(['CTRL'], 'S')">Ctrl+S Save</button>
+            <button class="action-btn" onclick="triggerCombo(['CTRL'], 'F')">Ctrl+F Find</button>
+          </div>
+        </div>
 
-      <!-- Row 4 -->
-      <div class="pc-row">
-        <button class="w-lg" data-mod="SHIFT">⇧ Shift</button>
-        <button data-key="Z">Z</button>
-        <button data-key="X">X</button>
-        <button data-key="C">C</button>
-        <button data-key="V">V</button>
-        <button data-key="B">B</button>
-        <button data-key="N">N</button>
-        <button data-key="M">M</button>
-        <button data-key=",">,</button>
-        <button data-key=".">.</button>
-        <button data-key="/">/</button>
-        <button class="w-sm" data-key="UP">▲</button>
-        <button class="w-sm" data-key="DELETE">Del</button>
-      </div>
+        <div class="card-section">
+          <div class="card-title">Windows &amp; System Shortcuts</div>
+          <div class="grid-btns">
+            <button class="action-btn accent" onclick="triggerCombo(['ALT'], 'TAB')">Alt+Tab Switch</button>
+            <button class="action-btn" onclick="triggerCombo(['WIN'], 'D')">Win+D Desktop</button>
+            <button class="action-btn" onclick="triggerCombo(['WIN'], 'E')">Win+E Files</button>
+            <button class="action-btn" onclick="triggerCombo(['WIN'], 'L')">Win+L Lock</button>
+            <button class="action-btn" onclick="triggerCombo(['WIN'], 'R')">Win+R Run</button>
+            <button class="action-btn" onclick="triggerCombo(['CTRL', 'SHIFT'], 'ESCAPE')">Task Manager</button>
+            <button class="action-btn" onclick="triggerCombo(['ALT'], 'F4')">Alt+F4 Close</button>
+            <button class="action-btn" onclick="triggerKey('WIN')">⊞ Win Start</button>
+          </div>
+        </div>
 
-      <!-- Row 5 -->
-      <div class="pc-row">
-        <button class="w-md" data-mod="CTRL">Ctrl</button>
-        <button class="w-sm" data-mod="WIN">⊞ Win</button>
-        <button class="w-md" data-mod="ALT">Alt</button>
-        <button class="w-space" data-key="SPACE">Space</button>
-        <button class="w-md" data-mod="ALT">Alt</button>
-        <button class="w-sm" data-key="LEFT">◀</button>
-        <button class="w-sm" data-key="DOWN">▼</button>
-        <button class="w-sm" data-key="RIGHT">▶</button>
-      </div>
+        <div class="card-section">
+          <div class="card-title">Function Keys (F1 - F12)</div>
+          <div class="grid-btns-6">
+            <button class="action-btn" onclick="triggerKey('F1')">F1</button>
+            <button class="action-btn" onclick="triggerKey('F2')">F2</button>
+            <button class="action-btn" onclick="triggerKey('F3')">F3</button>
+            <button class="action-btn" onclick="triggerKey('F4')">F4</button>
+            <button class="action-btn accent" onclick="triggerKey('F5')">F5 Refresh</button>
+            <button class="action-btn" onclick="triggerKey('F6')">F6</button>
+            <button class="action-btn" onclick="triggerKey('F7')">F7</button>
+            <button class="action-btn" onclick="triggerKey('F8')">F8</button>
+            <button class="action-btn" onclick="triggerKey('F9')">F9</button>
+            <button class="action-btn" onclick="triggerKey('F10')">F10</button>
+            <button class="action-btn accent" onclick="triggerKey('F11')">F11 Full</button>
+            <button class="action-btn" onclick="triggerKey('F12')">F12 Dev</button>
+          </div>
+        </div>
 
-      <!-- Quick Broken Keys Rescue Bar -->
-      <div class="card" style="margin-top: 4px;">
-        <div class="section-label">Broken Keys Rescue</div>
-        <div class="grid-4" style="grid-template-columns: repeat(8, 1fr);">
-          <button class="btn-accent grid-btn" data-text="!">!</button>
-          <button class="btn-accent grid-btn" data-text="A">A</button>
-          <button class="btn-accent grid-btn" data-text="a">a</button>
-          <button class="btn-accent grid-btn" data-text="S">S</button>
-          <button class="btn-accent grid-btn" data-text="s">s</button>
-          <button class="grid-btn" data-text="@">@</button>
-          <button class="grid-btn" data-text="#">#</button>
-          <button class="grid-btn" data-text="?">?</button>
+        <div class="card-section">
+          <div class="card-title">Navigation &amp; Editing Keys</div>
+          <div class="grid-btns">
+            <button class="action-btn" onclick="triggerKey('HOME')">Home</button>
+            <button class="action-btn" onclick="triggerKey('END')">End</button>
+            <button class="action-btn" onclick="triggerKey('PAGEUP')">PgUp</button>
+            <button class="action-btn" onclick="triggerKey('PAGEDOWN')">PgDn</button>
+            <button class="action-btn" onclick="triggerKey('INSERT')">Insert</button>
+            <button class="action-btn" onclick="triggerKey('DELETE')">Delete</button>
+            <button class="action-btn" onclick="triggerKey('PRINTSCREEN')">PrtScn</button>
+            <button class="action-btn" onclick="triggerKey('ESCAPE')">Esc</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- DECK 2: POWER SHORTCUTS -->
-    <div id="deckShortcuts" class="deck">
-      <div class="card">
-        <div class="section-label">Clipboard &amp; Editing</div>
-        <div class="grid-4">
-          <button class="btn-accent grid-btn" data-combo="CTRL+C">Ctrl+C (Copy)</button>
-          <button class="btn-accent grid-btn" data-combo="CTRL+V">Ctrl+V (Paste)</button>
-          <button class="grid-btn" data-combo="CTRL+X">Ctrl+X (Cut)</button>
-          <button class="grid-btn" data-combo="CTRL+A">Ctrl+A (All)</button>
-          <button class="grid-btn" data-combo="CTRL+Z">Ctrl+Z (Undo)</button>
-          <button class="grid-btn" data-combo="CTRL+Y">Ctrl+Y (Redo)</button>
-          <button class="grid-btn" data-combo="CTRL+S">Ctrl+S (Save)</button>
-          <button class="grid-btn" data-combo="CTRL+F">Ctrl+F (Find)</button>
+    <!-- DECK 3: TOUCHPAD -->
+    <div id="deck-touchpad" class="deck">
+      <div class="touchpad-deck">
+        <div class="touchpad-main">
+          <div id="touchpadSurface" class="touchpad-surface">
+            <span>Slide to Move Pointer</span>
+            <span style="font-size: 10px; color: #4b5563; margin-top: 4px;">Tap: Left Click • Two fingers: Right Click</span>
+          </div>
+          <div id="touchpadScroll" class="touchpad-scroll">
+            <span>▲<br>S<br>C<br>R<br>O<br>L<br>L<br>▼</span>
+          </div>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="section-label">Windows Multitasking &amp; Controls</div>
-        <div class="grid-4">
-          <button class="btn-accent grid-btn" data-combo="ALT+TAB">Alt+Tab</button>
-          <button class="grid-btn" data-combo="ALT+F4">Alt+F4</button>
-          <button class="grid-btn" data-combo="WIN+D">Win+D (Desktop)</button>
-          <button class="grid-btn" data-combo="WIN+TAB">Win+Tab</button>
-          <button class="grid-btn" data-combo="WIN+R">Win+R (Run)</button>
-          <button class="grid-btn" data-combo="WIN+E">Win+E (Files)</button>
-          <button class="grid-btn" data-combo="CTRL+SHIFT+ESCAPE">Ctrl+Shift+Esc</button>
-          <button class="grid-btn" data-combo="WIN+L">Win+L (Lock)</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="section-label">Browser &amp; Navigation</div>
-        <div class="grid-4">
-          <button class="grid-btn" data-combo="CTRL+T">Ctrl+T (New Tab)</button>
-          <button class="grid-btn" data-combo="CTRL+W">Ctrl+W (Close Tab)</button>
-          <button class="grid-btn" data-combo="CTRL+R">Ctrl+R (Reload)</button>
-          <button class="grid-btn" data-combo="CTRL+SHIFT+T">Reopen Tab</button>
-          <button class="grid-btn" data-key="F5">F5 (Refresh)</button>
-          <button class="grid-btn" data-key="F11">F11 (Fullscreen)</button>
-          <button class="grid-btn" data-combo="CTRL+P">Ctrl+P (Print)</button>
-          <button class="grid-btn" data-combo="CTRL+N">Ctrl+N (New)</button>
+        <div class="mouse-btn-row">
+          <button class="mouse-btn" onclick="triggerMouseClick('left')">Left Click</button>
+          <button class="mouse-btn" onclick="triggerMouseClick('double')">Double Click</button>
+          <button class="mouse-btn" onclick="triggerMouseClick('middle')">Middle</button>
+          <button class="mouse-btn" onclick="triggerMouseClick('right')">Right Click</button>
         </div>
       </div>
     </div>
 
-    <!-- DECK 3: F-KEYS & NUMPAD -->
-    <div id="deckFKeys" class="deck">
-      <div class="card">
-        <div class="section-label">Function Keys (F1 - F12)</div>
-        <div class="grid-6" style="margin-bottom: 4px;">
-          <button class="grid-btn" data-key="F1">F1</button>
-          <button class="grid-btn" data-key="F2">F2</button>
-          <button class="grid-btn" data-key="F3">F3</button>
-          <button class="grid-btn" data-key="F4">F4</button>
-          <button class="grid-btn" data-key="F5">F5</button>
-          <button class="grid-btn" data-key="F6">F6</button>
-        </div>
-        <div class="grid-6">
-          <button class="grid-btn" data-key="F7">F7</button>
-          <button class="grid-btn" data-key="F8">F8</button>
-          <button class="grid-btn" data-key="F9">F9</button>
-          <button class="grid-btn" data-key="F10">F10</button>
-          <button class="grid-btn" data-key="F11">F11</button>
-          <button class="grid-btn" data-key="F12">F12</button>
-        </div>
-      </div>
+    <!-- DECK 4: NUMPAD -->
+    <div id="deck-numpad" class="deck">
+      <div class="numpad-grid">
+        <button class="num-btn" onclick="triggerKey('NUMLOCK')">Num</button>
+        <button class="num-btn" onclick="triggerKey('/')">/</button>
+        <button class="num-btn" onclick="triggerKey('*')">*</button>
+        <button class="num-btn" onclick="triggerKey('-')">-</button>
 
-      <div class="card">
-        <div class="section-label">Navigation &amp; System</div>
-        <div class="grid-4">
-          <button class="grid-btn" data-key="PRINTSCREEN">PrtScn</button>
-          <button class="grid-btn" data-key="INSERT">Insert</button>
-          <button class="grid-btn" data-key="HOME">Home</button>
-          <button class="grid-btn" data-key="PAGEUP">PgUp</button>
-          <button class="grid-btn" data-key="DELETE">Delete</button>
-          <button class="grid-btn" data-key="END">End</button>
-          <button class="grid-btn" data-key="PAGEDOWN">PgDn</button>
-          <button class="grid-btn" data-key="PAUSE">Pause</button>
-        </div>
-      </div>
+        <button class="num-btn" onclick="triggerKey('7')">7</button>
+        <button class="num-btn" onclick="triggerKey('8')">8</button>
+        <button class="num-btn" onclick="triggerKey('9')">9</button>
+        <button class="num-btn" onclick="triggerKey('+')">+</button>
 
-      <div class="card">
-        <div class="section-label">Calculator Numeric Keypad</div>
-        <div class="grid-4">
-          <button class="grid-btn" data-key="NUMLOCK">NumLk</button>
-          <button class="grid-btn" data-key="NUMPAD_DIVIDE">/</button>
-          <button class="grid-btn" data-key="NUMPAD_MULTIPLY">*</button>
-          <button class="grid-btn" data-key="NUMPAD_SUBTRACT">-</button>
+        <button class="num-btn" onclick="triggerKey('4')">4</button>
+        <button class="num-btn" onclick="triggerKey('5')">5</button>
+        <button class="num-btn" onclick="triggerKey('6')">6</button>
+        <button class="num-btn accent" style="grid-row: span 2;" onclick="triggerKey('ENTER')">⏎</button>
 
-          <button class="grid-btn" data-key="NUMPAD7">7</button>
-          <button class="grid-btn" data-key="NUMPAD8">8</button>
-          <button class="grid-btn" data-key="NUMPAD9">9</button>
-          <button class="grid-btn" data-key="NUMPAD_ADD">+</button>
+        <button class="num-btn" onclick="triggerKey('1')">1</button>
+        <button class="num-btn" onclick="triggerKey('2')">2</button>
+        <button class="num-btn" onclick="triggerKey('3')">3</button>
 
-          <button class="grid-btn" data-key="NUMPAD4">4</button>
-          <button class="grid-btn" data-key="NUMPAD5">5</button>
-          <button class="grid-btn" data-key="NUMPAD6">6</button>
-          <button class="btn-accent grid-btn" data-key="ENTER">⏎</button>
-
-          <button class="grid-btn" data-key="NUMPAD1">1</button>
-          <button class="grid-btn" data-key="NUMPAD2">2</button>
-          <button class="grid-btn" data-key="NUMPAD3">3</button>
-          <button class="grid-btn" data-key="NUMPAD_DECIMAL">.</button>
-
-          <button class="grid-btn" style="grid-column: span 2;" data-key="NUMPAD0">0</button>
-          <button class="grid-btn" style="grid-column: span 2;" data-text="=">=</button>
-        </div>
+        <button class="num-btn" style="grid-column: span 2;" onclick="triggerKey('0')">0</button>
+        <button class="num-btn" onclick="triggerKey('.')">.</button>
+        <button class="num-btn" onclick="triggerKey('BACKSPACE')">⌫</button>
       </div>
     </div>
 
-    <!-- DECK 4: TOUCHPAD -->
-    <div id="deckTouchpad" class="deck">
-      <div class="card">
-        <div class="section-label">Precision Laptop Touchpad</div>
-        <div id="trackpad" class="trackpad">
-          Drag cursor &bull; Tap to left click &bull; 2-finger scroll
-        </div>
-        <div style="display: flex; gap: 8px; margin-top: 8px;">
-          <button id="btnLeftClick" style="flex: 1; height: 50px;">Left Click</button>
-          <button id="btnRightClick" style="flex: 1; height: 50px;">Right Click</button>
-        </div>
-      </div>
-    </div>
-  </main>
+  </div>
 
-  <script src="/static/app.js"></script>
+  <script src="/static/simple-keyboard.js"></script>
+  <script>
+    // WebSocket Client
+    let ws = null;
+    let isConnected = false;
+    const dotStatus = document.getElementById("dotStatus");
+    const deviceNameEl = document.getElementById("deviceName");
+
+    function connectWs() {
+      const loc = window.location;
+      const wsUrl = (loc.protocol === "https:" ? "wss://" : "ws://") + loc.host + "/ws";
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pin = urlParams.get("pin") || "{{SERVER_PIN}}";
+        ws.send(JSON.stringify({ type: "auth", payload: { pin: pin } }));
+      };
+
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === "auth_result" && msg.success) {
+            isConnected = true;
+            dotStatus.className = "dot-status connected";
+            deviceNameEl.innerText = msg.device_name || "{{DEVICE_NAME}}";
+          }
+        } catch (err) {}
+      };
+
+      ws.onclose = () => {
+        isConnected = false;
+        dotStatus.className = "dot-status";
+        setTimeout(connectWs, 2500);
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    }
+
+    connectWs();
+
+    function sendCommand(type, payload) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: type, payload: payload }));
+      }
+    }
+
+    function switchDeck(deckName) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.deck').forEach(d => d.classList.remove('active'));
+
+      const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.innerText.toLowerCase().includes(deckName));
+      if (targetBtn) targetBtn.classList.add('active');
+
+      const targetDeck = document.getElementById('deck-' + deckName);
+      if (targetDeck) targetDeck.classList.add('active');
+    }
+
+    let isCtrl = false;
+    let isAlt = false;
+    let isShift = false;
+    let isWin = false;
+
+    const KeyboardClass = (window.SimpleKeyboard && window.SimpleKeyboard.default) 
+      ? window.SimpleKeyboard.default 
+      : (window.SimpleKeyboard || null);
+
+    const keyboard = new KeyboardClass({
+      useTouchEvents: true,
+      useMouseEvents: true,
+      preventMouseDownDefault: true,
+      layout: {
+        default: [
+          "{esc} 1 2 3 4 5 6 7 8 9 0 - = {bksp}",
+          "{tab} q w e r t y u i o p [ ] \\",
+          "{lock} a s d f g h j k l ; ' {enter}",
+          "{shift} z x c v b n m , . / {del}",
+          "{control} {win} {alt} {space} {alt} {left} {up} {down} {right}"
+        ],
+        shift: [
+          "{esc} ! @ # $ % ^ & * ( ) _ + {bksp}",
+          "{tab} Q W E R T Y U I O P { } |",
+          "{lock} A S D F G H J K L : \" {enter}",
+          "{shift} Z X C V B N M < > ? {del}",
+          "{control} {win} {alt} {space} {alt} {left} {up} {down} {right}"
+        ]
+      },
+      display: {
+        "{esc}": "Esc",
+        "{bksp}": "⌫",
+        "{enter}": "⏎ Enter",
+        "{tab}": "Tab",
+        "{lock}": "Caps",
+        "{shift}": "⇧ Shift",
+        "{control}": "Ctrl",
+        "{alt}": "Alt",
+        "{win}": "⊞",
+        "{space}": "Space",
+        "{del}": "Del",
+        "{left}": "◀",
+        "{up}": "▲",
+        "{down}": "▼",
+        "{right}": "▶"
+      },
+      onKeyPress: button => handleKeyPress(button)
+    });
+
+    function handleKeyPress(button) {
+      if (button === "{shift}") {
+        isShift = !isShift;
+        keyboard.setOptions({ layoutName: isShift ? "shift" : "default" });
+        updateModifierStyles();
+        return;
+      }
+      if (button === "{lock}") {
+        const current = keyboard.options.layoutName;
+        keyboard.setOptions({ layoutName: current === "default" ? "shift" : "default" });
+        return;
+      }
+      if (button === "{control}") {
+        isCtrl = !isCtrl;
+        updateModifierStyles();
+        return;
+      }
+      if (button === "{alt}") {
+        isAlt = !isAlt;
+        updateModifierStyles();
+        return;
+      }
+      if (button === "{win}") {
+        isWin = !isWin;
+        updateModifierStyles();
+        return;
+      }
+
+      const keyMap = {
+        "{esc}": "ESCAPE",
+        "{bksp}": "BACKSPACE",
+        "{enter}": "ENTER",
+        "{tab}": "TAB",
+        "{space}": "SPACE",
+        "{del}": "DELETE",
+        "{left}": "LEFT",
+        "{up}": "UP",
+        "{down}": "DOWN",
+        "{right}": "RIGHT"
+      };
+
+      const keyName = keyMap[button] || button;
+      const mods = [];
+      if (isCtrl) mods.push("CTRL");
+      if (isAlt) mods.push("ALT");
+      if (isWin) mods.push("WIN");
+
+      if (mods.length > 0) {
+        triggerCombo(mods, keyName.toUpperCase());
+        isCtrl = false;
+        isAlt = false;
+        isWin = false;
+        updateModifierStyles();
+      } else {
+        triggerKey(keyName);
+      }
+
+      if (isShift) {
+        isShift = false;
+        keyboard.setOptions({ layoutName: "default" });
+        updateModifierStyles();
+      }
+    }
+
+    function triggerKey(key) {
+      sendCommand("key_press", { key: key });
+    }
+
+    function triggerCombo(mods, key) {
+      sendCommand("key_combo", { modifiers: mods, key: key });
+    }
+
+    function triggerMouseClick(btn) {
+      sendCommand("mouse_click", { button: btn });
+    }
+
+    function updateModifierStyles() {
+      const ctrlBtn = document.querySelector(".hg-button-control");
+      const altBtns = document.querySelectorAll(".hg-button-alt");
+      const shiftBtns = document.querySelectorAll(".hg-button-shift");
+      const winBtn = document.querySelector(".hg-button-win");
+
+      if (ctrlBtn) ctrlBtn.classList.toggle("hg-button-modifier-active", isCtrl);
+      altBtns.forEach(b => b.classList.toggle("hg-button-modifier-active", isAlt));
+      shiftBtns.forEach(b => b.classList.toggle("hg-button-modifier-active", isShift));
+      if (winBtn) winBtn.classList.toggle("hg-button-modifier-active", isWin);
+    }
+
+    // Direct Typing Bar
+    const textInput = document.getElementById("etTextInput");
+    const sendBtn = document.getElementById("btnSendText");
+
+    function sendCurrentText() {
+      const text = textInput.value;
+      if (text) {
+        sendCommand("type_text", { text: text });
+        textInput.value = "";
+      }
+    }
+
+    sendBtn.addEventListener("click", sendCurrentText);
+    textInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        sendCurrentText();
+        triggerKey("ENTER");
+      }
+    });
+
+    // Touchpad Pointer Tracking
+    const pad = document.getElementById("touchpadSurface");
+    let touchStartX = 0, touchStartY = 0;
+    let lastTouchX = 0, lastTouchY = 0;
+    let touchStartTime = 0;
+    let touchMoved = false;
+
+    pad.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        lastTouchX = touchStartX;
+        lastTouchY = touchStartY;
+        touchStartTime = Date.now();
+        touchMoved = false;
+      }
+    }, { passive: false });
+
+    pad.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        const cx = e.touches[0].clientX;
+        const cy = e.touches[0].clientY;
+        const dx = (cx - lastTouchX) * 1.6;
+        const dy = (cy - lastTouchY) * 1.6;
+        lastTouchX = cx;
+        lastTouchY = cy;
+
+        if (Math.abs(cx - touchStartX) > 4 || Math.abs(cy - touchStartY) > 4) {
+          touchMoved = true;
+        }
+
+        if (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5) {
+          sendCommand("mouse_move", { dx: Math.round(dx), dy: Math.round(dy) });
+        }
+      }
+    }, { passive: false });
+
+    pad.addEventListener("touchend", (e) => {
+      const elapsed = Date.now() - touchStartTime;
+      if (!touchMoved && elapsed < 250) {
+        triggerMouseClick("left");
+      }
+    });
+
+    // Vertical Scroll Strip
+    const scrollStrip = document.getElementById("touchpadScroll");
+    let lastScrollY = 0;
+
+    scrollStrip.addEventListener("touchstart", (e) => {
+      if (e.touches.length > 0) {
+        lastScrollY = e.touches[0].clientY;
+      }
+    }, { passive: false });
+
+    scrollStrip.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      if (e.touches.length > 0) {
+        const cy = e.touches[0].clientY;
+        const delta = cy - lastScrollY;
+        if (Math.abs(delta) >= 12) {
+          const dir = delta < 0 ? 1 : -1;
+          sendCommand("mouse_scroll", { dy: dir });
+          lastScrollY = cy;
+        }
+      }
+    }, { passive: false });
+  </script>
 </body>
 </html>

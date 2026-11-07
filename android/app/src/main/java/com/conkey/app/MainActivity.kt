@@ -16,6 +16,8 @@ import android.graphics.Color
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.provider.Settings
@@ -33,6 +35,8 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -41,9 +45,12 @@ import okhttp3.WebSocketListener
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.OutputStream
+import java.net.DatagramPacket
+import java.net.DatagramSocket
 import java.net.InetAddress
 import java.util.UUID
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -52,6 +59,7 @@ class MainActivity : Activity() {
     private lateinit var prefs: SharedPreferences
     private lateinit var vibrator: Vibrator
 
+    private lateinit var rootLayout: View
     private lateinit var pillDevice: View
     private lateinit var dotStatus: View
     private lateinit var tvDeviceName: TextView
@@ -61,24 +69,30 @@ class MainActivity : Activity() {
     // Network / Wi-Fi WebSocket
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(3, TimeUnit.SECONDS)
-        .readTimeout(0, TimeUnit.MILLISECONDS) // Keep alive for WebSocket
+        .readTimeout(0, TimeUnit.MILLISECONDS)
         .build()
     private var webSocket: WebSocket? = null
     private var isWifiConnected = false
 
-    // Bluetooth
+    // Bluetooth Fallback
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var bluetoothSocket: BluetoothSocket? = null
     private var btOutputStream: OutputStream? = null
     private var isBtConnected = false
 
-    // State & Async
+    // Connection Details
     private var currentHost = "10.60.12.147"
     private var currentPort = 8765
     private var currentPin = "2026"
     private var deviceName = "YashN's Laptop (ave)"
-    private val networkExecutor = Executors.newFixedThreadPool(4)
+    private var pingMs: Long = -1
+
+    // Concurrency & Listeners
+    private val networkExecutor = Executors.newFixedThreadPool(6)
+    private val autoReconnectScheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
+    private var udpSocket: DatagramSocket? = null
     private val isScanning = AtomicBoolean(false)
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     companion object {
         private const val TAG = "ConKey"
@@ -88,6 +102,13 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Set status bar & nav bar background to match surface
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            window.statusBarColor = Color.parseColor("#181B21")
+            window.navigationBarColor = Color.parseColor("#181B21")
+        }
+
         setContentView(R.layout.activity_main)
 
         prefs = getSharedPreferences("conkey_prefs", Context.MODE_PRIVATE)
@@ -101,11 +122,16 @@ class MainActivity : Activity() {
         bluetoothAdapter = btManager?.adapter ?: BluetoothAdapter.getDefaultAdapter()
 
         initViews()
+        applyWindowInsets()
         setupWebView()
-        connectToWifiServer(currentHost, currentPort)
+
+        startUdpDiscoveryListener()
+        startAutoConnectionPipeline()
+        startAutoReconnectScheduler()
     }
 
     private fun initViews() {
+        rootLayout = findViewById(R.id.rootLayout)
         pillDevice = findViewById(R.id.pillDevice)
         dotStatus = findViewById(R.id.dotStatus)
         tvDeviceName = findViewById(R.id.tvDeviceName)
@@ -117,7 +143,7 @@ class MainActivity : Activity() {
             showConnectionMenu()
         }
 
-        findViewById<Button>(R.id.btnBluetoothSettings).setOnClickListener {
+        findViewById<Button>(R.id.btnSettings).setOnClickListener {
             vibrate(15)
             showConnectionMenu()
         }
@@ -145,15 +171,19 @@ class MainActivity : Activity() {
                 false
             }
         }
+    }
 
-        findViewById<Button>(R.id.btnLeftClick).setOnClickListener {
-            vibrate(15)
-            sendMouseClick("left")
-        }
-
-        findViewById<Button>(R.id.btnRightClick).setOnClickListener {
-            vibrate(15)
-            sendMouseClick("right")
+    /**
+     * Prevents top app bar and bottom controls from hiding under
+     * the camera notch / cutout and navigation gesture bar.
+     */
+    private fun applyWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { view, windowInsets ->
+            val insets = windowInsets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+            WindowInsetsCompat.CONSUMED
         }
     }
 
@@ -180,7 +210,103 @@ class MainActivity : Activity() {
     }
 
     // =========================================================================
-    // WI-FI WEBSOCKET CONNECTION ENGINE (PRIMARY & INSTANT)
+    // MULTI-PATH AUTO CONNECTION PIPELINE
+    // =========================================================================
+
+    private fun startAutoConnectionPipeline() {
+        networkExecutor.execute {
+            // Path 1: Fast direct probe to saved host
+            val success = probeAndConnect(currentHost, currentPort)
+            if (!success) {
+                // Path 2: Subnet scan
+                scanLocalSubnet(silent = true)
+            }
+        }
+    }
+
+    private fun startAutoReconnectScheduler() {
+        autoReconnectScheduler.scheduleWithFixedDelay({
+            if (!isWifiConnected && !isBtConnected && !isScanning.get()) {
+                Log.d(TAG, "Auto-reconnect tick: attempting connection to $currentHost...")
+                probeAndConnect(currentHost, currentPort)
+            }
+        }, 3, 3, TimeUnit.SECONDS)
+    }
+
+    private fun probeAndConnect(host: String, port: Int): Boolean {
+        try {
+            val fastClient = OkHttpClient.Builder().connectTimeout(600, TimeUnit.MILLISECONDS).build()
+            val req = Request.Builder().url("http://$host:$port/api/device").build()
+            val resp = fastClient.newCall(req).execute()
+            if (resp.isSuccessful) {
+                val body = resp.body?.string() ?: ""
+                val json = JSONObject(body)
+                if (json.optString("service") == "conkey") {
+                    val name = json.optString("name", host)
+                    val pin = json.optString("pin", currentPin)
+                    deviceName = name
+                    currentPin = pin
+                    currentHost = host
+                    currentPort = port
+
+                    prefs.edit()
+                        .putString("server_ip", host)
+                        .putInt("server_port", port)
+                        .putString("server_pin", pin)
+                        .apply()
+
+                    connectToWifiServer(host, port)
+                    return true
+                }
+            }
+        } catch (e: Exception) {
+            // Unreachable
+        }
+        return false
+    }
+
+    private fun startUdpDiscoveryListener() {
+        networkExecutor.execute {
+            try {
+                udpSocket = DatagramSocket(8766).apply {
+                    broadcast = true
+                    reuseAddress = true
+                }
+                val buffer = ByteArray(2048)
+                val packet = DatagramPacket(buffer, buffer.size)
+
+                while (!isFinishing) {
+                    udpSocket?.receive(packet)
+                    val raw = String(packet.data, 0, packet.length, Charsets.UTF_8)
+                    try {
+                        val json = JSONObject(raw)
+                        if (json.optString("service") == "conkey") {
+                            val ip = json.optString("ip", packet.address?.hostAddress ?: currentHost)
+                            val port = json.optInt("port", 8765)
+                            val name = json.optString("name", ip)
+                            val pin = json.optString("pin", currentPin)
+
+                            if (!isWifiConnected) {
+                                deviceName = name
+                                currentPin = pin
+                                currentHost = ip
+                                currentPort = port
+                                prefs.edit().putString("server_ip", ip).apply()
+                                connectToWifiServer(ip, port)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // ignore malformed beacon
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "UDP Discovery stopped: ${e.message}")
+            }
+        }
+    }
+
+    // =========================================================================
+    // WI-FI WEBSOCKET CONNECTION ENGINE
     // =========================================================================
 
     private fun connectToWifiServer(host: String, port: Int = 8765) {
@@ -222,11 +348,10 @@ class MainActivity : Activity() {
                                 runOnUiThread {
                                     tvDeviceName.text = "$deviceName (Wi-Fi)"
                                     dotStatus.setBackgroundColor(Color.parseColor("#10B981")) // Green
-                                    Toast.makeText(this@MainActivity, "Connected to $deviceName", Toast.LENGTH_SHORT).show()
                                 }
                             } else {
                                 runOnUiThread {
-                                    tvDeviceName.text = "PIN Required"
+                                    tvDeviceName.text = "PIN Error"
                                     dotStatus.setBackgroundColor(Color.parseColor("#EF4444"))
                                 }
                             }
@@ -238,7 +363,6 @@ class MainActivity : Activity() {
             }
 
             override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
-                Log.w(TAG, "WebSocket failed: ${t.message}")
                 isWifiConnected = false
                 runOnUiThread {
                     tvDeviceName.text = "Disconnected (Tap to Connect)"
@@ -270,13 +394,15 @@ class MainActivity : Activity() {
     // SUBNET AUTO-DISCOVERY SCANNER
     // =========================================================================
 
-    private fun scanLocalSubnet() {
+    private fun scanLocalSubnet(silent: Boolean = false) {
         if (isScanning.getAndSet(true)) return
 
-        runOnUiThread {
-            tvDeviceName.text = "Scanning Wi-Fi network..."
-            dotStatus.setBackgroundColor(Color.parseColor("#3B82F6")) // Blue
-            Toast.makeText(this, "Scanning local Wi-Fi for ConKey laptop...", Toast.LENGTH_SHORT).show()
+        if (!silent) {
+            runOnUiThread {
+                tvDeviceName.text = "Scanning Wi-Fi network..."
+                dotStatus.setBackgroundColor(Color.parseColor("#3B82F6")) // Blue
+                Toast.makeText(this, "Scanning local Wi-Fi for ConKey laptop...", Toast.LENGTH_SHORT).show()
+            }
         }
 
         networkExecutor.execute {
@@ -294,19 +420,9 @@ class MainActivity : Activity() {
                 val fastClient = OkHttpClient.Builder().connectTimeout(350, TimeUnit.MILLISECONDS).build()
                 var found = false
 
-                // Probe current host first
-                try {
-                    val req = Request.Builder().url("http://$currentHost:8765/api/device").build()
-                    val resp = fastClient.newCall(req).execute()
-                    if (resp.isSuccessful) {
-                        val body = resp.body?.string() ?: ""
-                        if (body.contains("conkey")) {
-                            found = true
-                            connectToWifiServer(currentHost, 8765)
-                        }
-                    }
-                } catch (e: Exception) {
-                    // try subnet
+                // Try current host first
+                if (probeAndConnect(currentHost, currentPort)) {
+                    found = true
                 }
 
                 if (!found) {
@@ -327,7 +443,7 @@ class MainActivity : Activity() {
                                     }
                                 }
                             } catch (e: Exception) {
-                                // Ignore non-responsive host
+                                // non-responsive host
                             }
                         }
                     }
@@ -335,7 +451,7 @@ class MainActivity : Activity() {
                     scanPool.awaitTermination(3, TimeUnit.SECONDS)
                 }
 
-                if (!found) {
+                if (!found && !silent) {
                     runOnUiThread {
                         tvDeviceName.text = "Laptop not found (Check IP)"
                         dotStatus.setBackgroundColor(Color.parseColor("#EF4444"))
@@ -462,13 +578,13 @@ class MainActivity : Activity() {
     }
 
     // =========================================================================
-    // COMMAND DISPATCHER (TRANSPARENTLY SENDS TO WI-FI OR BLUETOOTH)
+    // COMMAND DISPATCHER (TRANSPARENTLY DISPATCHES OVER ACTIVE TRANSPORT)
     // =========================================================================
 
     private fun sendCommand(type: String, payload: JSONObject) {
         if (!isWifiConnected && !isBtConnected) {
             runOnUiThread {
-                Toast.makeText(this, "Not connected. Tap header to connect.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Connecting to laptop... Please wait.", Toast.LENGTH_SHORT).show()
             }
             return
         }
@@ -501,8 +617,20 @@ class MainActivity : Activity() {
         sendCommand("type_text", JSONObject().put("text", text))
     }
 
+    private fun sendMouseMove(dx: Float, dy: Float) {
+        val payload = JSONObject().apply {
+            put("dx", dx.toInt())
+            put("dy", dy.toInt())
+        }
+        sendCommand("mouse_move", payload)
+    }
+
     private fun sendMouseClick(button: String) {
         sendCommand("mouse_click", JSONObject().put("button", button))
+    }
+
+    private fun sendMouseScroll(dy: Float) {
+        sendCommand("mouse_scroll", JSONObject().put("dy", dy.toInt()))
     }
 
     private fun vibrate(ms: Long) {
@@ -515,29 +643,55 @@ class MainActivity : Activity() {
     }
 
     // =========================================================================
-    // CONNECTION SELECTION MENU
+    // CONNECTION SELECTION & SETTINGS MENU
     // =========================================================================
 
     private fun showConnectionMenu() {
+        val statusText = if (isWifiConnected) "Connected via Wi-Fi" else if (isBtConnected) "Connected via Bluetooth" else "Disconnected"
         val options = arrayOf(
             "⚡ Connect to Laptop Wi-Fi ($currentHost)",
             "🔍 Auto-Scan Local Wi-Fi Network",
-            "📶 Connect via Bluetooth",
-            "✏ Enter Laptop IP Manually"
+            "✏ Enter Laptop IP Manually",
+            "🔄 Test Connection (Ping)",
+            "📶 Connect via Bluetooth (Fallback)"
         )
 
         AlertDialog.Builder(this)
-            .setTitle("Connect to ConKey Laptop")
+            .setTitle("ConKey - $statusText")
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> connectToWifiServer(currentHost, currentPort)
-                    1 -> scanLocalSubnet()
-                    2 -> checkBluetoothPermissionsAndOpen()
-                    3 -> showManualIpDialog()
+                    1 -> scanLocalSubnet(silent = false)
+                    2 -> showManualIpDialog()
+                    3 -> testPing()
+                    4 -> checkBluetoothPermissionsAndOpen()
                 }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton("Close", null)
             .show()
+    }
+
+    private fun testPing() {
+        networkExecutor.execute {
+            val start = System.currentTimeMillis()
+            var ok = false
+            try {
+                val fastClient = OkHttpClient.Builder().connectTimeout(1500, TimeUnit.MILLISECONDS).build()
+                val req = Request.Builder().url("http://$currentHost:$currentPort/api/device").build()
+                val resp = fastClient.newCall(req).execute()
+                ok = resp.isSuccessful
+            } catch (e: Exception) {
+                ok = false
+            }
+            val elapsed = System.currentTimeMillis() - start
+            runOnUiThread {
+                if (ok) {
+                    Toast.makeText(this, "Laptop online! Roundtrip: ${elapsed}ms", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Laptop unreachable at $currentHost:$currentPort", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
     private fun showManualIpDialog() {
@@ -562,14 +716,14 @@ class MainActivity : Activity() {
     }
 
     // =========================================================================
-    // JAVASCRIPT BRIDGE FOR VIRTUAL KEYBOARD
+    // JAVASCRIPT BRIDGE FOR VIRTUAL KEYBOARD & TOUCHPAD
     // =========================================================================
 
     inner class KeyboardBridge {
         @JavascriptInterface
         fun sendKey(key: String) {
             vibrate(12)
-            sendCommand("key_press", JSONObject().put("key", key))
+            this@MainActivity.sendKey(key)
         }
 
         @JavascriptInterface
@@ -582,12 +736,45 @@ class MainActivity : Activity() {
             }
             sendCommand("key_combo", payload)
         }
+
+        @JavascriptInterface
+        fun sendText(text: String) {
+            vibrate(12)
+            this@MainActivity.sendText(text)
+        }
+
+        @JavascriptInterface
+        fun sendMouseMove(dx: Float, dy: Float) {
+            this@MainActivity.sendMouseMove(dx, dy)
+        }
+
+        @JavascriptInterface
+        fun sendMouseClick(button: String) {
+            vibrate(15)
+            this@MainActivity.sendMouseClick(button)
+        }
+
+        @JavascriptInterface
+        fun sendMouseScroll(dy: Float) {
+            this@MainActivity.sendMouseScroll(dy)
+        }
+
+        @JavascriptInterface
+        fun vibrate(ms: Long) {
+            this@MainActivity.vibrate(ms)
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         disconnectWifi()
         disconnectBluetooth()
+        try {
+            udpSocket?.close()
+        } catch (e: Exception) {
+            // ignore
+        }
+        autoReconnectScheduler.shutdown()
         networkExecutor.shutdown()
     }
 }
