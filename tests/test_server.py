@@ -12,12 +12,19 @@ async def test_server_e2e_ws_flow():
 
     try:
         async with aiohttp.ClientSession() as session:
-            # 1. Test HTTP Info endpoint
+            # 1. Test HTTP Info & Device endpoints
             async with session.get(f"http://127.0.0.1:{test_port}/api/info") as resp:
                 assert resp.status == 200
                 info = await resp.json()
                 assert info["service"] == "conkey"
-                assert info["pin_required"] is True
+                assert "device_id" in info
+                assert "name" in info
+
+            async with session.get(f"http://127.0.0.1:{test_port}/api/device") as resp:
+                assert resp.status == 200
+                dev = await resp.json()
+                assert dev["service"] == "conkey"
+                assert dev["port"] == test_port
 
             # 1.1 Test APK Download endpoint
             async with session.get(f"http://127.0.0.1:{test_port}/download/conkey.apk") as resp:

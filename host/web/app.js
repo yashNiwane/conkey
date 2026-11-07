@@ -1,17 +1,20 @@
-// ConKey Mobile Web Client
+// ConKey Mobile Web Client with Full PC Layout and Sticky Modifiers
 let ws = null;
 let isAuthenticated = false;
 let reconnectTimer = null;
 
-const statusBadge = document.getElementById("statusBadge");
-const statusText = document.getElementById("statusText");
-const authCard = document.getElementById("authCard");
-const pinInput = document.getElementById("pinInput");
-const connectBtn = document.getElementById("connectBtn");
+// Sticky modifier states
+let isCtrlActive = false;
+let isAltActive = false;
+let isShiftActive = false;
+let isWinActive = false;
+
+const statusDot = document.getElementById("statusDot");
+const deviceNameEl = document.getElementById("deviceName");
 const textInput = document.getElementById("textInput");
 const trackpad = document.getElementById("trackpad");
 
-function vibrate(ms = 25) {
+function vibrate(ms = 20) {
   if (navigator.vibrate) {
     try { navigator.vibrate(ms); } catch (e) {}
   }
@@ -19,13 +22,12 @@ function vibrate(ms = 25) {
 
 function updateStatus(connected, text) {
   if (connected) {
-    statusBadge.className = "status-badge connected";
-    statusText.textContent = text || "Connected";
-    authCard.style.display = "none";
+    statusDot.className = "status-dot connected";
+    deviceNameEl.textContent = text || "{{DEVICE_NAME}}";
+    isAuthenticated = true;
   } else {
-    statusBadge.className = "status-badge";
-    statusText.textContent = text || "Disconnected";
-    authCard.style.display = "block";
+    statusDot.className = "status-dot";
+    deviceNameEl.textContent = text || "Connecting...";
     isAuthenticated = false;
   }
 }
@@ -36,18 +38,65 @@ function send(type, payload) {
 }
 
 function sendCombo(modifiers, key) {
-  vibrate();
+  vibrate(22);
   send("key_combo", { modifiers, key });
 }
 
 function sendKey(key) {
-  vibrate();
-  send("key_press", { key });
+  vibrate(18);
+  const mods = [];
+  if (isCtrlActive) mods.push("CTRL");
+  if (isAltActive) mods.push("ALT");
+  if (isShiftActive) mods.push("SHIFT");
+  if (isWinActive) mods.push("WIN");
+
+  if (mods.length > 0) {
+    sendCombo(mods, key);
+    clearModifiers();
+  } else {
+    send("key_press", { key });
+  }
 }
 
 function sendText(text) {
   if (!text) return;
+  vibrate(18);
   send("type_text", { text });
+}
+
+function toggleModifier(mod, btn) {
+  vibrate(20);
+  if (mod === "CTRL") isCtrlActive = !isCtrlActive;
+  if (mod === "ALT") isAltActive = !isAltActive;
+  if (mod === "SHIFT") isShiftActive = !isShiftActive;
+  if (mod === "WIN") isWinActive = !isWinActive;
+  syncModifierButtons();
+}
+
+function clearModifiers() {
+  if (isCtrlActive || isAltActive || isShiftActive || isWinActive) {
+    isCtrlActive = false;
+    isAltActive = false;
+    isShiftActive = false;
+    isWinActive = false;
+    syncModifierButtons();
+  }
+}
+
+function syncModifierButtons() {
+  document.querySelectorAll("[data-mod]").forEach(btn => {
+    const m = btn.getAttribute("data-mod");
+    let active = false;
+    if (m === "CTRL") active = isCtrlActive;
+    if (m === "ALT") active = isAltActive;
+    if (m === "SHIFT") active = isShiftActive;
+    if (m === "WIN") active = isWinActive;
+    if (active) {
+      btn.classList.add("btn-modifier-active");
+    } else {
+      btn.classList.remove("btn-modifier-active");
+    }
+  });
 }
 
 function connect() {
@@ -59,13 +108,10 @@ function connect() {
   ws = new WebSocket(wsUrl);
 
   ws.onopen = () => {
-    updateStatus(false, "Authorizing...");
+    statusDot.className = "status-dot connecting";
     const urlParams = new URLSearchParams(window.location.search);
-    const pin = urlParams.get("pin") || pinInput.value.trim() || localStorage.getItem("conkey_pin") || "";
-    if (pin) {
-      pinInput.value = pin;
-      send("auth", { pin });
-    }
+    const pin = urlParams.get("pin") || "{{SERVER_PIN}}";
+    send("auth", { pin });
   };
 
   ws.onmessage = (event) => {
@@ -73,11 +119,8 @@ function connect() {
       const data = JSON.parse(event.data);
       if (data.type === "auth_result") {
         if (data.success) {
-          isAuthenticated = true;
-          localStorage.setItem("conkey_pin", pinInput.value.trim());
-          updateStatus(true, "Ready");
+          updateStatus(true, data.device_name || "{{DEVICE_NAME}}");
         } else {
-          alert("Authentication failed: " + data.message);
           updateStatus(false, "Auth Failed");
         }
       }
@@ -88,7 +131,7 @@ function connect() {
 
   ws.onclose = () => {
     updateStatus(false, "Disconnected");
-    reconnectTimer = setTimeout(connect, 3000);
+    reconnectTimer = setTimeout(connect, 2500);
   };
 
   ws.onerror = () => {
@@ -97,13 +140,6 @@ function connect() {
 }
 
 // Handlers
-connectBtn.addEventListener("click", () => {
-  const pin = pinInput.value.trim();
-  if (pin) {
-    send("auth", { pin });
-  }
-});
-
 textInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
@@ -116,29 +152,36 @@ textInput.addEventListener("keydown", (e) => {
   }
 });
 
-document.getElementById("sendTextBtn").addEventListener("click", () => {
+document.getElementById("sendTextBtn")?.addEventListener("click", () => {
   const val = textInput.value;
   if (val) {
-    vibrate();
     sendText(val);
     textInput.value = "";
   }
 });
 
-// Dead-keys quick bar
-document.querySelectorAll("[data-type-text]").forEach(btn => {
+// Modifiers
+document.querySelectorAll("[data-mod]").forEach(btn => {
   btn.addEventListener("click", () => {
-    vibrate();
-    sendText(btn.getAttribute("data-type-text"));
+    toggleModifier(btn.getAttribute("data-mod"), btn);
   });
 });
 
+// Keys
 document.querySelectorAll("[data-key]").forEach(btn => {
   btn.addEventListener("click", () => {
     sendKey(btn.getAttribute("data-key"));
   });
 });
 
+// Text buttons
+document.querySelectorAll("[data-text]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    sendText(btn.getAttribute("data-text"));
+  });
+});
+
+// Combos
 document.querySelectorAll("[data-combo]").forEach(btn => {
   btn.addEventListener("click", () => {
     const raw = btn.getAttribute("data-combo");
@@ -148,19 +191,19 @@ document.querySelectorAll("[data-combo]").forEach(btn => {
   });
 });
 
-// Tabs
+// Deck tabs
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     vibrate(15);
     document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    document.querySelectorAll(".deck").forEach(d => d.classList.remove("active"));
     btn.classList.add("active");
-    const target = document.getElementById(btn.getAttribute("data-tab"));
+    const target = document.getElementById(btn.getAttribute("data-target"));
     if (target) target.classList.add("active");
   });
 });
 
-// Trackpad implementation
+// Trackpad
 let lastTouchX = 0;
 let lastTouchY = 0;
 let touchStartTime = 0;
@@ -181,14 +224,12 @@ if (trackpad) {
       const currentY = e.touches[0].clientY;
       const dx = Math.round((currentX - lastTouchX) * 1.5);
       const dy = Math.round((currentY - lastTouchY) * 1.5);
-
       if (dx !== 0 || dy !== 0) {
         send("mouse_move", { dx, dy });
         lastTouchX = currentX;
         lastTouchY = currentY;
       }
     } else if (e.touches.length === 2) {
-      // 2 finger scroll
       const currentY = e.touches[0].clientY;
       const dy = Math.round((currentY - lastTouchY) / 10);
       if (dy !== 0) {
@@ -202,22 +243,20 @@ if (trackpad) {
     trackpad.classList.remove("active");
     const elapsed = Date.now() - touchStartTime;
     if (elapsed < 200 && e.changedTouches.length === 1) {
-      // Tap to click
       vibrate(15);
       send("mouse_click", { button: "left" });
     }
   });
 
   document.getElementById("btnLeftClick")?.addEventListener("click", () => {
-    vibrate();
+    vibrate(18);
     send("mouse_click", { button: "left" });
   });
 
   document.getElementById("btnRightClick")?.addEventListener("click", () => {
-    vibrate();
+    vibrate(18);
     send("mouse_click", { button: "right" });
   });
 }
 
-// Start
 window.addEventListener("DOMContentLoaded", connect);

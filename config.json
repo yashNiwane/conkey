@@ -2,5 +2,7 @@
   "port": 8765,
   "discovery_port": 8766,
   "pin": "2026",
-  "autostart": true
+  "autostart": true,
+  "device_name": "YashN's Laptop (ave)",
+  "device_id": "805a32eddbbd"
 }

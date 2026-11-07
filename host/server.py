@@ -1,7 +1,7 @@
 """
 ConKey Host Server for Windows.
-Provides unified HTTP + WebSocket server, UDP auto-discovery, PIN pairing,
-and keystroke dispatch via Win32 SendInput.
+Provides unified HTTP + WebSocket server, zero-conf UDP discovery beacons,
+PIN pairing, and keystroke dispatch via Win32 SendInput.
 """
 
 import asyncio
@@ -18,6 +18,7 @@ from typing import Dict, Optional, Set
 
 from aiohttp import web, WSMsgType
 
+from host.config import load_config
 from host.protocol import (
     parse_command,
     ProtocolError,
@@ -56,11 +57,9 @@ def get_local_ip() -> str:
 
 
 class DiscoveryProtocol(asyncio.DatagramProtocol):
-    """Responds to UDP broadcast discovery requests from mobile devices."""
-    def __init__(self, http_port: int, pin: str, hostname: str):
-        self.http_port = http_port
-        self.pin = pin
-        self.hostname = hostname
+    """Responds to UDP broadcast discovery requests and sends periodic beacons."""
+    def __init__(self, server: "ConKeyServer"):
+        self.server = server
         self.transport: Optional[asyncio.DatagramTransport] = None
 
     def connection_made(self, transport: asyncio.BaseTransport):
@@ -69,12 +68,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def datagram_received(self, data: bytes, addr):
         msg = data.decode("utf-8", errors="ignore").strip()
         if msg.startswith("CONKEY_DISCOVER"):
-            reply = {
-                "service": "conkey",
-                "hostname": self.hostname,
-                "port": self.http_port,
-                "version": "1.0",
-            }
+            reply = self.server.get_device_card()
             if self.transport:
                 self.transport.sendto(json.dumps(reply).encode("utf-8"), addr)
 
@@ -85,12 +79,18 @@ class ConKeyServer:
         port: int = 8765,
         discovery_port: int = 8766,
         pin: Optional[str] = None,
+        device_name: Optional[str] = None,
+        device_id: Optional[str] = None,
         static_dir: Optional[Path] = None,
         apk_path: Optional[Path] = None,
     ):
-        self.port = port
-        self.discovery_port = discovery_port
-        self.pin = pin or f"{random.randint(1000, 9999)}"
+        cfg = load_config()
+        self.port = port or cfg.port
+        self.discovery_port = discovery_port or cfg.discovery_port
+        self.pin = pin or cfg.pin
+        self.device_name = device_name or cfg.device_name
+        self.device_id = device_id or cfg.device_id
+        self.hostname = socket.gethostname()
         self.static_dir = static_dir or (Path(__file__).parent / "web")
         self.apk_path = apk_path or (Path(__file__).parent.parent / "conkey.apk")
         
@@ -98,13 +98,27 @@ class ConKeyServer:
         self.sessions: Dict[web.WebSocketResponse, SessionState] = {}
         self.runner: Optional[web.AppRunner] = None
         self.discovery_transport: Optional[asyncio.DatagramTransport] = None
+        self._beacon_task: Optional[asyncio.Task] = None
 
         self._setup_routes()
+
+    def get_device_card(self) -> dict:
+        return {
+            "service": "conkey",
+            "device_id": self.device_id,
+            "name": self.device_name,
+            "hostname": self.hostname,
+            "ip": get_local_ip(),
+            "port": self.port,
+            "pin": self.pin,
+            "version": "2.0",
+        }
 
     def _setup_routes(self):
         self.app.router.add_get("/", self.handle_index)
         self.app.router.add_get("/ws", self.handle_ws)
         self.app.router.add_get("/api/info", self.handle_info)
+        self.app.router.add_get("/api/device", self.handle_device)
         self.app.router.add_get("/download/conkey.apk", self.handle_download_apk)
         if self.static_dir.exists():
             self.app.router.add_static("/static/", path=str(self.static_dir), name="static")
@@ -113,25 +127,22 @@ class ConKeyServer:
         index_file = self.static_dir / "index.html"
         if not index_file.exists():
             return web.Response(
-                text=f"<h1>ConKey Server Running</h1><p>PIN: {self.pin}</p>",
+                text=f"<h1>ConKey Server Running</h1><p>Device: {self.device_name}</p><p>PIN: {self.pin}</p>",
                 content_type="text/html"
             )
         content = index_file.read_text(encoding="utf-8")
-        # Template replacements for seamless web client pairing
         content = content.replace("{{DEFAULT_PORT}}", str(self.port))
         content = content.replace("{{SERVER_PIN}}", self.pin)
+        content = content.replace("{{DEVICE_NAME}}", self.device_name)
         return web.Response(text=content, content_type="text/html")
 
     async def handle_info(self, request: web.Request) -> web.Response:
-        return web.json_response({
-            "service": "conkey",
-            "hostname": socket.gethostname(),
-            "port": self.port,
-            "pin_required": True,
-        })
+        return web.json_response(self.get_device_card())
+
+    async def handle_device(self, request: web.Request) -> web.Response:
+        return web.json_response(self.get_device_card())
 
     async def handle_download_apk(self, request: web.Request) -> web.StreamResponse:
-        # Check standard APK locations
         candidates = [
             self.apk_path,
             Path(__file__).parent.parent / "conkey.apk",
@@ -158,9 +169,9 @@ class ConKeyServer:
         logger.info("New client connected from %s", request.remote)
 
         try:
-            # Send initial greeting asking for authentication
             await ws.send_json({
                 "type": "auth_required",
+                "device_name": self.device_name,
                 "message": "Enter PIN to control laptop",
             })
 
@@ -171,7 +182,6 @@ class ConKeyServer:
                     logger.warning("WS error: %s", ws.exception())
                     break
         finally:
-            # Clean up modifiers held down by this session to prevent stuck keys
             for mod in list(session.active_modifiers):
                 try:
                     win_keyboard.key_up(mod)
@@ -205,6 +215,7 @@ class ConKeyServer:
                 await ws.send_json({
                     "type": "auth_result",
                     "success": True,
+                    "device_name": self.device_name,
                     "message": "Authenticated. Control active.",
                 })
             else:
@@ -216,7 +227,6 @@ class ConKeyServer:
                 })
             return
 
-        # Require auth for all operational commands
         if not session.authenticated:
             await ws.send_json({
                 "type": "error",
@@ -263,39 +273,54 @@ class ConKeyServer:
                 "server_time": time.time(),
             })
 
+    async def _run_beacon_loop(self):
+        """Periodically broadcasts UDP beacon so mobile apps detect laptop instantly."""
+        beacon_data = json.dumps(self.get_device_card()).encode("utf-8")
+        broadcast_addr = ("255.255.255.255", self.discovery_port)
+
+        while True:
+            try:
+                if self.discovery_transport and not self.discovery_transport.is_closing():
+                    self.discovery_transport.sendto(beacon_data, broadcast_addr)
+            except Exception as e:
+                pass
+            await asyncio.sleep(2.5)
+
     async def start(self):
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
         site = web.TCPSite(self.runner, "0.0.0.0", self.port)
         await site.start()
 
-        # Start UDP Discovery
+        # Start UDP Discovery Listener & Beacon
         try:
             loop = asyncio.get_running_loop()
             transport, _ = await loop.create_datagram_endpoint(
-                lambda: DiscoveryProtocol(self.port, self.pin, socket.gethostname()),
+                lambda: DiscoveryProtocol(self),
                 local_addr=("0.0.0.0", self.discovery_port),
                 allow_broadcast=True,
             )
             self.discovery_transport = transport
+            self._beacon_task = asyncio.create_task(self._run_beacon_loop())
         except Exception as e:
             logger.warning("Could not bind UDP discovery port %d: %s", self.discovery_port, e)
 
         local_ip = get_local_ip()
-        print("\n" + "=" * 54)
-        print("          CONKEY LAPTOP RECEIVER ACTIVE")
-        print("=" * 54)
+        print("\n" + "=" * 58)
+        print(f"       CONKEY LAPTOP RECEIVER: {self.device_name}")
+        print("=" * 58)
         print(f"  Mobile Browser URL:  http://{local_ip}:{self.port}/")
         print(f"  Direct Web Auth:     http://{local_ip}:{self.port}/?pin={self.pin}")
         print(f"  Host IP for App:     {local_ip}:{self.port}")
+        print(f"  Device Name:         {self.device_name}")
         print(f"  Pairing PIN:         {self.pin}")
-        print("=" * 54)
-        print("  Tips for broken laptop keys:")
-        print("  - Type 'A', 'S', '!' or any key directly from phone")
-        print("  - Use phone hotkey buttons for Ctrl+C, Ctrl+V, etc.")
+        print("=" * 58)
+        print("  - Zero-config auto-discovery active on local Wi-Fi")
         print("  - Press Ctrl+C in terminal to stop server\n")
 
     async def stop(self):
+        if self._beacon_task:
+            self._beacon_task.cancel()
         if self.discovery_transport:
             self.discovery_transport.close()
         for ws in list(self.sessions.keys()):

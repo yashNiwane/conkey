@@ -1,6 +1,7 @@
 """
 Windows keyboard input simulation using Win32 SendInput via ctypes.
-Provides high-fidelity unicode typing, virtual key codes, and modifier chords.
+Provides high-fidelity unicode typing, virtual key codes, modifier chords,
+and comprehensive PC keyboard keys (F1-F12, Numpad, Navigation, Media).
 """
 
 import ctypes
@@ -40,6 +41,9 @@ VK_MAP = {
     "RSHIFT": 0xA1,
     "WIN": 0x5B,
     "WINDOWS": 0x5B,
+    "LWIN": 0x5B,
+    "RWIN": 0x5C,
+    "APPS": 0x5D,
     
     # Common navigation & editing
     "BACKSPACE": 0x08,
@@ -51,7 +55,9 @@ VK_MAP = {
     "ESC": 0x1B,
     "SPACE": 0x20,
     "PAGEUP": 0x21,
+    "PGUP": 0x21,
     "PAGEDOWN": 0x22,
+    "PGDN": 0x22,
     "END": 0x23,
     "HOME": 0x24,
     "LEFT": 0x25,
@@ -61,14 +67,77 @@ VK_MAP = {
     "DELETE": 0x2E,
     "DEL": 0x2E,
     "INSERT": 0x2D,
+    "INS": 0x2D,
     "CAPSLOCK": 0x14,
+    "PRINTSCREEN": 0x2C,
+    "PRTSCN": 0x2C,
+    "SCROLLLOCK": 0x91,
+    "PAUSE": 0x13,
+    "BREAK": 0x13,
     
-    # Function keys
+    # Punctuation & Symbols
+    "SEMICOLON": 0xBA,
+    "PLUS": 0xBB,
+    "EQUALS": 0xBB,
+    "COMMA": 0xBC,
+    "MINUS": 0xBD,
+    "HYPHEN": 0xBD,
+    "PERIOD": 0xBE,
+    "DOT": 0xBE,
+    "SLASH": 0xBF,
+    "TILDE": 0xC0,
+    "GRAVE": 0xC0,
+    "LBRACKET": 0xDB,
+    "BRACKET_LEFT": 0xDB,
+    "BACKSLASH": 0xDC,
+    "RBRACKET": 0xDD,
+    "BRACKET_RIGHT": 0xDD,
+    "QUOTE": 0xDE,
+    "APOSTROPHE": 0xDE,
+
+    # Numeric Keypad (Numpad)
+    "NUMLOCK": 0x90,
+    "NUMPAD0": 0x60,
+    "NUMPAD1": 0x61,
+    "NUMPAD2": 0x62,
+    "NUMPAD3": 0x63,
+    "NUMPAD4": 0x64,
+    "NUMPAD5": 0x65,
+    "NUMPAD6": 0x66,
+    "NUMPAD7": 0x67,
+    "NUMPAD8": 0x68,
+    "NUMPAD9": 0x69,
+    "NUMPAD_MULTIPLY": 0x6A,
+    "NUMPAD_ADD": 0x6B,
+    "NUMPAD_SUBTRACT": 0x6D,
+    "NUMPAD_DECIMAL": 0x6E,
+    "NUMPAD_DIVIDE": 0x6F,
+
+    # Media keys
+    "VOLUME_MUTE": 0xAD,
+    "VOLUME_DOWN": 0xAE,
+    "VOLUME_UP": 0xAF,
+    "MEDIA_NEXT": 0xB0,
+    "MEDIA_PREV": 0xB1,
+    "MEDIA_STOP": 0xB2,
+    "MEDIA_PLAY_PAUSE": 0xB3,
+    
+    # Function keys (F1 - F12)
     **{f"F{i}": 0x6F + i for i in range(1, 13)},
     
     # Alphanumeric
     **{chr(c): c for c in range(ord('A'), ord('Z') + 1)},
     **{chr(c): c for c in range(ord('0'), ord('9') + 1)},
+}
+
+# Extended keys that require KEYEVENTF_EXTENDEDKEY flag
+EXTENDED_VKS = {
+    0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,  # Arrows, Home, End, PgUp, PgDn
+    0x2D, 0x2E,                                      # Insert, Delete
+    0x5B, 0x5C, 0x5D,                                # Win keys, Apps
+    0x6F,                                            # Numpad divide
+    0x2C,                                            # PrintScreen
+    0x90,                                            # NumLock
 }
 
 # Win32 C Structs
@@ -129,10 +198,14 @@ def _send_inputs(inputs: List[INPUT]) -> int:
 def key_down(vk_or_name: str | int) -> None:
     vk = VK_MAP.get(vk_or_name.upper(), 0) if isinstance(vk_or_name, str) else vk_or_name
     if not vk:
+        # If it's a single unicode char not in VK map, type it directly
+        if isinstance(vk_or_name, str) and len(vk_or_name) == 1:
+            type_char_unicode(vk_or_name)
+            return
         raise ValueError(f"Unknown virtual key: {vk_or_name}")
     
     flags = 0
-    if vk in (0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2D, 0x2E, 0x5B):
+    if vk in EXTENDED_VKS:
         flags |= KEYEVENTF_EXTENDEDKEY
 
     inp = INPUT(
@@ -145,10 +218,12 @@ def key_down(vk_or_name: str | int) -> None:
 def key_up(vk_or_name: str | int) -> None:
     vk = VK_MAP.get(vk_or_name.upper(), 0) if isinstance(vk_or_name, str) else vk_or_name
     if not vk:
+        if isinstance(vk_or_name, str) and len(vk_or_name) == 1:
+            return
         raise ValueError(f"Unknown virtual key: {vk_or_name}")
     
     flags = KEYEVENTF_KEYUP
-    if vk in (0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2D, 0x2E, 0x5B):
+    if vk in EXTENDED_VKS:
         flags |= KEYEVENTF_EXTENDEDKEY
 
     inp = INPUT(
@@ -159,6 +234,11 @@ def key_up(vk_or_name: str | int) -> None:
 
 
 def press_key(vk_or_name: str | int, delay: float = 0.01) -> None:
+    # If single character symbol not mapped in VK_MAP, type it via Unicode
+    if isinstance(vk_or_name, str) and len(vk_or_name) == 1 and vk_or_name.upper() not in VK_MAP:
+        type_char_unicode(vk_or_name)
+        return
+
     key_down(vk_or_name)
     if delay > 0:
         time.sleep(delay)
@@ -166,7 +246,7 @@ def press_key(vk_or_name: str | int, delay: float = 0.01) -> None:
 
 
 def key_combo(modifiers: List[str], key: str, delay: float = 0.01) -> None:
-    """Presses a combination such as ['CTRL'], 'C' or ['CTRL', 'ALT'], 'DELETE'."""
+    """Presses a combination such as ['CTRL'], 'C' or ['ALT'], 'TAB'."""
     for mod in modifiers:
         key_down(mod)
     try:
@@ -180,12 +260,10 @@ def key_combo(modifiers: List[str], key: str, delay: float = 0.01) -> None:
 def type_char_unicode(char: str) -> None:
     """Sends a single unicode character using KEYEVENTF_UNICODE."""
     code = ord(char)
-    # Down
     inp_down = INPUT(
         type=INPUT_KEYBOARD,
         ki=KEYBDINPUT(wVk=0, wScan=code, dwFlags=KEYEVENTF_UNICODE, time=0, dwExtraInfo=0)
     )
-    # Up
     inp_up = INPUT(
         type=INPUT_KEYBOARD,
         ki=KEYBDINPUT(wVk=0, wScan=code, dwFlags=KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, time=0, dwExtraInfo=0)
@@ -238,7 +316,6 @@ def mouse_click(button: str = "left") -> None:
 
 
 def mouse_scroll(dy: int) -> None:
-    # dy typically in multiples of 120 (WHEEL_DELTA)
     wheel_amount = dy * 120
     inp = INPUT(
         type=INPUT_MOUSE,
