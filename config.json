@@ -1,0 +1,6 @@
+{
+  "port": 8765,
+  "discovery_port": 8766,
+  "pin": "2026",
+  "autostart": true
+}

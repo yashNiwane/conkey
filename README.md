@@ -8,7 +8,16 @@ Built specifically to rescue laptops with broken hardware keys (such as `Ctrl+C`
 
 ## Quick Start (Two Steps)
 
-### Step 1: Start Host on Laptop
+### Windows Startup (Automatic Background Service)
+ConKey is already registered in your Windows Startup directory.
+- It will start automatically in the background using `pythonw.exe` every time your laptop boots or logs in.
+- Default persistent PIN: `2026` (stored in `config.json`).
+- To re-enable or disable startup at any time:
+  - Double-click [`enable_startup.bat`](file:///c:/Users/YashN/Desktop/conkey/enable_startup.bat) to activate.
+  - Double-click [`disable_startup.bat`](file:///c:/Users/YashN/Desktop/conkey/disable_startup.bat) to deactivate.
+
+### Manual Launch (Foreground Console)
+If you prefer running in an interactive terminal to see connection logs:
 Double-click `start_conkey.bat` or run:
 ```powershell
 python host\run_host.py

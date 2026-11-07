@@ -3,3 +3,4 @@ timestamp	phase	decision	reason	evidence
 2026-11-07T10:21:00Z	grounding	Use Win32 SendInput API for keyboard simulation	SendInput is the official Windows API that bypasses DirectX/Win32 application boundaries, supports Unicode direct injection without layout mismatches	ctypes.windll.user32.SendInput native support on Windows
 2026-11-07T10:25:00Z	implementation	Built Host Win32 SendInput and WebSocket server	Low-latency typing, modifier chording, PIN security	12 passing pytest tests in tests/
 2026-11-07T10:30:00Z	implementation	Built Android Native App and APK via Gradle	Native Android app with OkHttp WebSocket, UDP auto-discovery, haptics	app-debug.apk assembled successfully (2.6MB)
+2026-11-07T10:44:00Z	startup	Registered ConKey in Windows Startup via pythonw.exe	Automatic background launch on laptop boot without terminal popup	ConKey.lnk confirmed in shell:startup, test_startup_and_config.py passing
