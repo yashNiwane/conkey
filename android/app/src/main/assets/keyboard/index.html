@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ConKey Virtual Keyboard</title>
   <link rel="stylesheet" href="simple-keyboard.css">
   <style>
     * {
@@ -11,32 +12,37 @@
       -webkit-user-select: none;
       touch-action: manipulation;
     }
-    body {
+    html, body {
       margin: 0;
-      padding: 4px;
+      padding: 0;
       background: #0f1115;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    body {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      overflow: hidden;
-      height: 100vh;
+      padding: 4px;
+      gap: 4px;
     }
 
-    /* Hotkeys bar */
+    /* Hotkeys Bar */
     .hotkey-bar {
       display: flex;
       gap: 4px;
       overflow-x: auto;
       padding-bottom: 2px;
       scrollbar-width: none;
+      flex-shrink: 0;
     }
     .hotkey-bar::-webkit-scrollbar { display: none; }
 
     .hotkey-btn {
       flex: 1;
-      min-width: 54px;
-      height: 38px;
+      min-width: 52px;
+      height: 34px;
       background: #181b21;
       color: #f3f4f6;
       border: 1px solid #2b303c;
@@ -48,47 +54,57 @@
       justify-content: center;
       cursor: pointer;
       white-space: nowrap;
+      transition: background 0.1s, transform 0.05s;
     }
     .hotkey-btn:active {
-      background: #2e3442;
-      transform: scale(0.96);
+      background: #3b82f6 !important;
+      color: #ffffff !important;
+      transform: scale(0.95);
     }
     .hotkey-btn.accent {
-      background: #3b82f6;
+      background: #2563eb;
       border-color: #3b82f6;
     }
 
-    /* Simple Keyboard Custom Dark Styling */
+    /* Simple Keyboard Custom Styling */
     .simple-keyboard {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
       background-color: transparent !important;
       padding: 0 !important;
       max-width: 100%;
     }
     .hg-theme-default .hg-row {
-      margin-bottom: 4px !important;
+      margin-bottom: 3px !important;
+      display: flex;
+      gap: 3px;
     }
     .hg-theme-default .hg-button {
       background: #1c2028 !important;
       color: #f3f4f6 !important;
       border: 1px solid #2b303c !important;
       border-bottom: 2px solid #14171d !important;
-      border-radius: 6px !important;
-      height: 46px !important;
-      font-size: 14px !important;
+      border-radius: 5px !important;
+      height: clamp(36px, 6.2vh, 46px) !important;
+      font-size: 13px !important;
       font-weight: 600 !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3) !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
+      flex-grow: 1;
+      transition: transform 0.05s, background 0.08s;
     }
     .hg-theme-default .hg-button:active {
       background: #3b82f6 !important;
       color: #ffffff !important;
       border-color: #3b82f6 !important;
-      transform: translateY(1px);
+      transform: translateY(1px) scale(0.96);
     }
 
-    /* Modifiers highlighting */
+    /* Modifiers Highlight */
     .hg-button-modifier-active {
       background: #f59e0b !important;
       color: #000000 !important;
@@ -96,18 +112,31 @@
       font-weight: bold !important;
     }
 
-    /* Special keys sizing */
+    /* Keys Width Adjustments */
     .hg-button-space { flex-grow: 4 !important; }
-    .hg-button-tab { max-width: 52px; font-size: 11px !important; }
-    .hg-button-lock { max-width: 52px; font-size: 11px !important; }
-    .hg-button-shift { max-width: 62px; font-size: 11px !important; }
-    .hg-button-enter { max-width: 72px; background: #3b82f6 !important; border-color: #3b82f6 !important; font-size: 11px !important; }
-    .hg-button-bksp { max-width: 52px; font-size: 13px !important; }
-    .hg-button-esc { max-width: 44px; font-size: 11px !important; }
-    .hg-button-control, .hg-button-alt, .hg-button-win { max-width: 46px; font-size: 11px !important; font-weight: bold; }
+    .hg-button-tab { max-width: 48px; font-size: 11px !important; }
+    .hg-button-lock { max-width: 48px; font-size: 11px !important; }
+    .hg-button-shift { max-width: 58px; font-size: 11px !important; }
+    .hg-button-enter { max-width: 68px; background: #2563eb !important; border-color: #3b82f6 !important; font-size: 11px !important; }
+    .hg-button-bksp { max-width: 48px; font-size: 13px !important; }
+    .hg-button-esc { max-width: 42px; font-size: 11px !important; }
+    .hg-button-control, .hg-button-alt, .hg-button-win { max-width: 44px; font-size: 11px !important; font-weight: bold; }
+
+    #errorBanner {
+      display: none;
+      background: #7f1d1d;
+      color: #fecaca;
+      padding: 6px;
+      font-size: 11px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
   </style>
 </head>
 <body>
+
+  <div id="errorBanner"></div>
 
   <!-- Top Hotkeys Quick Bar -->
   <div class="hotkey-bar">
@@ -121,19 +150,39 @@
     <button class="hotkey-btn" onclick="triggerCombo(['CTRL', 'SHIFT'], 'ESCAPE')">TaskMgr</button>
   </div>
 
-  <!-- The Official Virtual Keyboard -->
+  <!-- Official Virtual Keyboard Container -->
   <div class="simple-keyboard"></div>
 
   <script src="simple-keyboard.js"></script>
   <script>
+    window.onerror = function(msg, url, line) {
+      const banner = document.getElementById('errorBanner');
+      if (banner) {
+        banner.style.display = 'block';
+        banner.innerText = 'JS Error: ' + msg + ' (L' + line + ')';
+      }
+      return false;
+    };
+
     let isCtrl = false;
     let isAlt = false;
     let isShift = false;
     let isWin = false;
 
-    const Keyboard = window.SimpleKeyboard.default;
+    // Resolve UMD export safely
+    const KeyboardClass = (window.SimpleKeyboard && window.SimpleKeyboard.default) 
+      ? window.SimpleKeyboard.default 
+      : (window.SimpleKeyboard || null);
 
-    const keyboard = new Keyboard({
+    if (!KeyboardClass) {
+      document.getElementById('errorBanner').style.display = 'block';
+      document.getElementById('errorBanner').innerText = 'SimpleKeyboard package failed to load.';
+    }
+
+    const keyboard = new KeyboardClass({
+      useTouchEvents: true,
+      useMouseEvents: true,
+      preventMouseDownDefault: true,
       layout: {
         default: [
           "{esc} 1 2 3 4 5 6 7 8 9 0 - = {bksp}",
@@ -206,7 +255,6 @@
         return;
       }
 
-      // Map special tags to key names
       const keyMap = {
         "{esc}": "ESCAPE",
         "{bksp}": "BACKSPACE",
@@ -229,7 +277,6 @@
 
       if (mods.length > 0) {
         triggerCombo(mods, keyName.toUpperCase());
-        // Auto-clear modifiers after chord
         isCtrl = false;
         isAlt = false;
         isWin = false;
@@ -240,7 +287,6 @@
         }
       }
 
-      // If shift was active for one key, reset layout
       if (isShift) {
         isShift = false;
         keyboard.setOptions({ layoutName: "default" });
