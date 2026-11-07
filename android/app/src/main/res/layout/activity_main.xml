@@ -7,26 +7,16 @@
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
-    <!-- Top App & Navigation Bar (Notch & Cutout Safe) -->
+    <!-- Clean Top Navigation Bar (Notch-Safe, Simplified) -->
     <LinearLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:background="@color/surface"
         android:gravity="center_vertical"
-        android:paddingHorizontal="14dp">
+        android:paddingHorizontal="12dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="ConKey"
-            android:textColor="@color/accent"
-            android:textSize="17sp"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif-medium"
-            android:layout_marginEnd="12dp"/>
-
-        <!-- Interactive Connection Status Pill -->
+        <!-- Connection Status & Selection Dropdown Pill -->
         <LinearLayout
             android:id="@+id/pillDevice"
             android:layout_width="0dp"
@@ -63,22 +53,24 @@
                 android:text="▼"
                 android:textColor="@color/text_secondary"
                 android:textSize="9sp"
-                android:layout_marginStart="4dp"/>
+                android:layout_marginStart="6dp"/>
         </LinearLayout>
 
-        <!-- Settings / Connection Button -->
+        <!-- Live Screen Stream Start / Pause Toggle -->
         <Button
-            android:id="@+id/btnSettings"
-            android:layout_width="36dp"
+            android:id="@+id/btnToggleScreen"
+            android:layout_width="wrap_content"
             android:layout_height="34dp"
             android:layout_marginStart="8dp"
-            android:background="@drawable/bg_btn"
-            android:text="⚙"
-            android:textColor="@color/text_primary"
-            android:textSize="14sp" />
+            android:background="@drawable/bg_pill"
+            android:paddingHorizontal="10dp"
+            android:text="📺 Screen ON"
+            android:textColor="@color/accent"
+            android:textSize="11sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Unified Split View: Live Screen Stream + Keyboard / Touchpad -->
+    <!-- Unified Split View: Live Desktop Stream + Controller Decks -->
     <WebView
         android:id="@+id/webViewKeyboard"
         android:layout_width="match_parent"

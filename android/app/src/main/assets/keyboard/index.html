@@ -47,7 +47,7 @@
       display: flex;
       flex-direction: column;
       padding: 4px;
-      gap: 5px;
+      gap: 4px;
     }
 
     /* =========================================================================
@@ -64,12 +64,12 @@
       display: flex;
       flex-direction: column;
       box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.8), 0 2px 8px rgba(0, 0, 0, 0.4);
-      transition: flex 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: flex 0.22s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .screen-panel.collapsed {
-      flex: 0 0 34px !important;
-      min-height: 34px !important;
+      flex: 0 0 32px !important;
+      min-height: 32px !important;
     }
 
     .screen-panel.maximized {
@@ -98,7 +98,7 @@
       transition: opacity 0.2s ease;
     }
 
-    /* Offline Ambient HUD */
+    /* Offline / Paused Ambient HUD */
     .screen-placeholder {
       position: absolute;
       inset: 0;
@@ -106,7 +106,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 7px;
       color: var(--text-dim);
       padding: 12px;
       text-align: center;
@@ -114,20 +114,20 @@
     }
 
     .screen-placeholder-icon {
-      font-size: 28px;
+      font-size: 26px;
       opacity: 0.8;
     }
 
     .screen-placeholder-title {
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
       color: var(--text-main);
     }
 
     .screen-placeholder-sub {
       font-size: 11px;
       color: var(--text-muted);
-      max-width: 240px;
+      max-width: 250px;
       line-height: 1.4;
     }
 
@@ -180,6 +180,11 @@
       box-shadow: 0 0 6px var(--accent-emerald);
     }
 
+    .badge-dot.paused {
+      background: var(--text-muted);
+      box-shadow: none;
+    }
+
     .screen-controls {
       pointer-events: auto;
       display: flex;
@@ -208,46 +213,7 @@
     }
 
     /* =========================================================================
-       MINIMAL SEGMENTED CONTROLLER SWITCHER (Navigation)
-       ========================================================================= */
-    .controller-nav {
-      display: flex;
-      background: var(--surface-1);
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      padding: 3px;
-      flex-shrink: 0;
-      gap: 4px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-    }
-
-    .nav-segment {
-      flex: 1;
-      height: 32px;
-      background: transparent;
-      color: var(--text-dim);
-      border: none;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.2px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .nav-segment.active {
-      background: var(--surface-key);
-      color: var(--text-main);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-    }
-
-    /* =========================================================================
-       BOTTOM HALF: CONTROLLER AREA (KEYBOARD & TOUCHPAD)
+       CONTROLLER STAGE (MIDDLE / BOTTOM)
        ========================================================================= */
     .controller-stage {
       flex: 1.25;
@@ -269,7 +235,7 @@
     }
 
     /* =========================================================================
-       OPTION 1: GBOARD-STYLE PC HYBRID KEYBOARD
+       DECK 1: GBOARD-STYLE PC HYBRID KEYBOARD
        ========================================================================= */
     .keyboard-wrapper {
       flex: 1;
@@ -339,7 +305,7 @@
       border-color: #1e2c44;
     }
 
-    /* Gboard-style Virtual Key Rows */
+    /* Virtual Key Rows */
     .key-row {
       display: flex;
       gap: 3px;
@@ -395,10 +361,6 @@
       font-weight: 700;
     }
 
-    .key-accent:active {
-      background: #0369a1 !important;
-    }
-
     .key-space { flex: 3.5; }
     .key-enter { flex: 1.6; }
     .key-shift { flex: 1.4; }
@@ -406,21 +368,21 @@
     .key-mod { flex: 1.1; font-size: 11px; }
 
     /* =========================================================================
-       OPTION 2: EXPANSIVE PRECISION TOUCHPAD
+       DECK 2: ONE-THUMB PRECISION TOUCHPAD
        ========================================================================= */
     .touchpad-deck {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
       height: 100%;
     }
 
     .touchpad-arena {
       flex: 1;
       display: flex;
-      gap: 6px;
-      min-height: 140px;
+      gap: 5px;
+      min-height: 130px;
     }
 
     .glide-canvas {
@@ -447,8 +409,13 @@
       background-color: #121622;
     }
 
+    .glide-canvas.drag-locked {
+      border: 1.5px solid var(--accent-amber);
+      background-color: #1a160d;
+    }
+
     .scroll-rail {
-      width: 42px;
+      width: 44px;
       background: var(--surface-1);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-panel);
@@ -469,14 +436,16 @@
       border-color: var(--accent-sky);
     }
 
-    .mouse-bar {
+    /* Thumb-Resting Action Row (No duplicate Left Click) */
+    .thumb-actions-bar {
       display: flex;
       gap: 5px;
-      height: 44px;
+      height: 40px;
       flex-shrink: 0;
     }
 
-    .mouse-btn {
+    .thumb-btn {
+      flex: 1;
       background: var(--surface-key);
       color: var(--text-main);
       border: 1px solid var(--border-subtle);
@@ -487,21 +456,64 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 4px;
       box-shadow: 0 1.5px 2px rgba(0, 0, 0, 0.35);
       transition: transform 0.04s, background-color 0.05s;
     }
 
-    .mouse-btn:active {
+    .thumb-btn:active {
       transform: scale(0.96);
       background-color: var(--accent-blue);
       color: #ffffff;
     }
 
-    .mouse-btn.left { flex: 2; }
-    .mouse-btn.mid { flex: 1; font-size: 11px; }
-    .mouse-btn.right { flex: 1.5; }
+    .thumb-btn.active-lock {
+      background: #2b2313 !important;
+      color: #fbbf24 !important;
+      border-color: var(--accent-amber) !important;
+    }
 
-    /* Direct Typing Modal Bar (Optional Slide-Down) */
+    /* =========================================================================
+       BOTTOM THUMB-ZONE SEGMENTED SWITCHER (Moved to Bottom Edge)
+       ========================================================================= */
+    .bottom-nav {
+      display: flex;
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 3px;
+      flex-shrink: 0;
+      gap: 4px;
+      height: 38px;
+      box-shadow: 0 -1px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .bottom-tab {
+      flex: 1;
+      height: 100%;
+      background: transparent;
+      color: var(--text-dim);
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .bottom-tab.active {
+      background: var(--surface-key);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Direct Typing Slide Bar */
     .typing-bar {
       display: none;
       gap: 4px;
@@ -547,15 +559,15 @@
        TOP HALF: LIVE DESKTOP SCREEN VIEWFINDER
        ========================================================================= -->
   <div id="screenPanel" class="screen-panel">
-    <!-- Screen Inset Overlay Badge & Controls -->
+    <!-- Screen Overlay Bar -->
     <div class="screen-overlay-bar">
       <div class="screen-badge">
         <span class="badge-dot" id="liveDot"></span>
         <span id="screenStatusText">LIVE SCREEN</span>
       </div>
       <div class="screen-controls">
+        <button class="screen-ctrl-btn" id="btnToggleStream" title="Pause / Resume Stream" onclick="toggleStreamFromWeb()">⏸</button>
         <button class="screen-ctrl-btn" id="btnTouchMode" title="Direct Touch Click" onclick="toggleDirectTouch()">👆</button>
-        <button class="screen-ctrl-btn" id="btnRefreshStream" title="Reconnect Screen Stream" onclick="refreshScreenStream()">↻</button>
         <button class="screen-ctrl-btn" id="btnResizeScreen" title="Expand / Collapse View" onclick="toggleScreenSize()">⤢</button>
       </div>
     </div>
@@ -564,12 +576,12 @@
     <div id="screenViewport" class="screen-viewport">
       <img id="screenImg" class="screen-img" src="" alt="Desktop Screen Stream" style="display: none;" />
 
-      <!-- Ambient Offline Placeholder -->
+      <!-- Ambient Offline / Paused Placeholder -->
       <div id="screenPlaceholder" class="screen-placeholder">
         <div class="screen-placeholder-icon">🖥️</div>
-        <div class="screen-placeholder-title">Live Desktop Mirror</div>
-        <div class="screen-placeholder-sub">Connect to Wi-Fi to view laptop screen in real time with touch controls.</div>
-        <button class="hud-btn" onclick="openPairingHub()">Connect Wi-Fi Stream</button>
+        <div class="screen-placeholder-title" id="hudTitle">Live Desktop Mirror</div>
+        <div class="screen-placeholder-sub" id="hudSub">Real-time screen view with visible cursor and touch control.</div>
+        <button class="hud-btn" id="hudBtn" onclick="resumeOrConnectStream()">Start Screen Stream</button>
       </div>
     </div>
   </div>
@@ -581,21 +593,9 @@
   </div>
 
   <!-- =========================================================================
-       MINIMAL SEGMENTED CONTROLLER SWITCHER (Navigation)
+       MIDDLE: CONTROLLER AREA (SWIPEABLE HORIZONTALLY)
        ========================================================================= -->
-  <div class="controller-nav">
-    <button id="navKey" class="nav-segment active" onclick="switchController('keyboard')">
-      <span>⌨ Keyboard</span>
-    </button>
-    <button id="navTouch" class="nav-segment" onclick="switchController('touchpad')">
-      <span>🖲 Touchpad</span>
-    </button>
-  </div>
-
-  <!-- =========================================================================
-       BOTTOM HALF: CONTROLLER AREA
-       ========================================================================= -->
-  <div class="controller-stage">
+  <div id="controllerStage" class="controller-stage">
 
     <!-- DECK 1: GBOARD-STYLE PC HYBRID KEYBOARD -->
     <div id="deckKeyboard" class="deck-panel active">
@@ -722,26 +722,45 @@
       </div>
     </div>
 
-    <!-- DECK 2: EXPANSIVE PRECISION TOUCHPAD -->
+    <!-- DECK 2: ONE-THUMB PRECISION TOUCHPAD -->
     <div id="deckTouchpad" class="deck-panel">
       <div class="touchpad-deck">
         <div class="touchpad-arena">
           <div id="glideCanvas" class="glide-canvas">
             <span>Glide Cursor</span>
-            <span style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Tap: Left Click • Two Fingers: Right Click</span>
+            <span style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Tap: Left Click • Hold: Right Click</span>
           </div>
           <div id="scrollRail" class="scroll-rail">
             <span>▲<br>S<br>C<br>R<br>O<br>L<br>L<br>▼</span>
           </div>
         </div>
-        <div class="mouse-bar">
-          <button class="mouse-btn left" onclick="triggerMouseClick('left')">Left Click</button>
-          <button class="mouse-btn mid" onclick="triggerMouseClick('middle')">Middle</button>
-          <button class="mouse-btn right" onclick="triggerMouseClick('right')">Right Click</button>
+        <!-- Thumb-Resting Action Buttons (No duplicate Left Click) -->
+        <div class="thumb-actions-bar">
+          <button class="thumb-btn" id="btnDragLock" onclick="toggleDragLock()">
+            <span>✊ Drag / Select</span>
+          </button>
+          <button class="thumb-btn" onclick="triggerMouseClick('middle')">
+            <span>Middle</span>
+          </button>
+          <button class="thumb-btn" style="flex: 1.4; color: var(--accent-sky);" onclick="triggerMouseClick('right')">
+            <span>Right Click ▤</span>
+          </button>
         </div>
       </div>
     </div>
 
+  </div>
+
+  <!-- =========================================================================
+       BOTTOM EDGE: THUMB-REACHABLE SEGMENTED SWITCHER (Navigation)
+       ========================================================================= -->
+  <div class="bottom-nav">
+    <button id="navKey" class="bottom-tab active" onclick="switchController('keyboard')">
+      <span>⌨ Keyboard</span>
+    </button>
+    <button id="navTouch" class="bottom-tab" onclick="switchController('touchpad')">
+      <span>🖲 Touchpad</span>
+    </button>
   </div>
 
   <script>
@@ -753,6 +772,8 @@
     let isArmedWin = false;
     let isShiftActive = false;
     let isDirectTouchClick = true;
+    let isStreamActive = true;
+    let isDragLocked = false;
     let currentMode = "keyboard"; // "keyboard" | "touchpad"
     let screenState = "normal";   // "normal" | "maximized" | "collapsed"
 
@@ -761,13 +782,14 @@
     const liveDot = document.getElementById("liveDot");
     const screenStatusText = document.getElementById("screenStatusText");
     const screenPanel = document.getElementById("screenPanel");
+    const btnToggleStream = document.getElementById("btnToggleStream");
 
     // Initialize Stream
     function initScreenStream() {
-      const host = (window.ConKeyBridge && window.ConKeyBridge.getHostIp()) || "10.60.12.147";
       const isWifi = (window.ConKeyBridge && window.ConKeyBridge.isWifiConnected()) || false;
+      const host = (window.ConKeyBridge && window.ConKeyBridge.getHostIp()) || "10.60.12.147";
       
-      if (isWifi) {
+      if (isWifi && isStreamActive) {
         loadStream(host);
       } else {
         showScreenOffline();
@@ -775,13 +797,16 @@
     }
 
     function loadStream(host) {
+      if (!isStreamActive) return;
       screenImg.src = "http://" + host + ":8765/stream.mjpg?t=" + Date.now();
       screenImg.onload = function() {
+        if (!isStreamActive) return;
         screenImg.style.display = "block";
         screenPlaceholder.style.display = "none";
-        liveDot.style.background = "var(--accent-emerald)";
-        liveDot.style.boxShadow = "0 0 6px var(--accent-emerald)";
+        liveDot.className = "badge-dot";
         screenStatusText.innerText = "LIVE SCREEN";
+        btnToggleStream.innerText = "⏸";
+        btnToggleStream.title = "Pause Screen Stream";
       };
       screenImg.onerror = function() {
         showScreenOffline();
@@ -791,26 +816,57 @@
     function showScreenOffline() {
       screenImg.style.display = "none";
       screenPlaceholder.style.display = "flex";
-      liveDot.style.background = "#f59e0b";
-      liveDot.style.boxShadow = "none";
-      screenStatusText.innerText = "STREAM OFFLINE";
-    }
+      liveDot.className = "badge-dot paused";
 
-    function refreshScreenStream() {
-      vibrate(10);
-      const host = (window.ConKeyBridge && window.ConKeyBridge.getHostIp()) || "10.60.12.147";
-      loadStream(host);
-    }
-
-    function openPairingHub() {
-      if (window.ConKeyBridge) {
-        window.ConKeyBridge.openConnectionMenu();
+      if (!isStreamActive) {
+        screenStatusText.innerText = "STREAM PAUSED";
+        document.getElementById("hudTitle").innerText = "Screen Stream Paused";
+        document.getElementById("hudSub").innerText = "Stream is paused to save battery and network bandwidth.";
+        document.getElementById("hudBtn").innerText = "Resume Screen Stream";
+        btnToggleStream.innerText = "▶";
+        btnToggleStream.title = "Resume Screen Stream";
+      } else {
+        screenStatusText.innerText = "OFFLINE";
+        document.getElementById("hudTitle").innerText = "Live Desktop Mirror";
+        document.getElementById("hudSub").innerText = "Connect to Wi-Fi to view laptop screen in real time with touch controls.";
+        document.getElementById("hudBtn").innerText = "Connect Wi-Fi Stream";
+        btnToggleStream.innerText = "▶";
       }
     }
 
-    // Called from Android MainActivity when connection status changes
+    function resumeOrConnectStream() {
+      vibrate(10);
+      const isWifi = (window.ConKeyBridge && window.ConKeyBridge.isWifiConnected()) || false;
+      if (!isWifi) {
+        if (window.ConKeyBridge) window.ConKeyBridge.openConnectionMenu();
+      } else {
+        window.setScreenStreamActive(true);
+      }
+    }
+
+    function toggleStreamFromWeb() {
+      vibrate(12);
+      window.setScreenStreamActive(!isStreamActive);
+    }
+
+    // Called from Native Top Bar Button or Internal Controls
+    window.setScreenStreamActive = function(active) {
+      isStreamActive = active;
+      if (window.ConKeyBridge && window.ConKeyBridge.reportScreenActive) {
+        window.ConKeyBridge.reportScreenActive(active);
+      }
+
+      if (active) {
+        const host = (window.ConKeyBridge && window.ConKeyBridge.getHostIp()) || "10.60.12.147";
+        loadStream(host);
+      } else {
+        screenImg.src = "";
+        showScreenOffline();
+      }
+    };
+
     window.onConnectionStatusChanged = function(hidConnected, wifiConnected, host, name) {
-      if (wifiConnected) {
+      if (wifiConnected && isStreamActive) {
         loadStream(host);
       } else {
         showScreenOffline();
@@ -863,9 +919,10 @@
     }
 
     // =========================================================================
-    // NAVIGATION CONTROLLER SWITCHER
+    // NAVIGATION CONTROLLER SWITCHER & HORIZONTAL SWIPE GESTURE
     // =========================================================================
     function switchController(mode) {
+      if (currentMode === mode) return;
       currentMode = mode;
       vibrate(12);
 
@@ -875,6 +932,40 @@
       document.getElementById("deckKeyboard").classList.toggle("active", mode === "keyboard");
       document.getElementById("deckTouchpad").classList.toggle("active", mode === "touchpad");
     }
+
+    // Horizontal Swipe Gesture Listener on Controller Stage
+    const stage = document.getElementById("controllerStage");
+    let swipeStartX = 0, swipeStartY = 0;
+    let isSwiping = false;
+
+    stage.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        swipeStartX = e.touches[0].clientX;
+        swipeStartY = e.touches[0].clientY;
+        isSwiping = true;
+      }
+    }, { passive: true });
+
+    stage.addEventListener("touchend", (e) => {
+      if (!isSwiping || e.changedTouches.length === 0) return;
+      isSwiping = false;
+
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+      const deltaX = endX - swipeStartX;
+      const deltaY = endY - swipeStartY;
+
+      // Detect strong horizontal swipe (at least 55px and predominantly horizontal)
+      if (Math.abs(deltaX) > 55 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+        if (deltaX < 0 && currentMode === "keyboard") {
+          // Swipe Left -> Touchpad
+          switchController("touchpad");
+        } else if (deltaX > 0 && currentMode === "touchpad") {
+          // Swipe Right -> Keyboard
+          switchController("keyboard");
+        }
+      }
+    }, { passive: true });
 
     // =========================================================================
     // KEYBOARD MODES & MODIFIERS
@@ -900,7 +991,6 @@
       btnShift.style.background = isShiftActive ? "var(--accent-blue)" : "";
       btnShift.style.color = isShiftActive ? "#ffffff" : "";
 
-      // Update letters case
       document.querySelectorAll("#layoutAlpha .key").forEach(k => {
         const textNode = Array.from(k.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
         if (textNode) {
@@ -1004,14 +1094,16 @@
     }
 
     // =========================================================================
-    // TOUCHPAD GLIDE PHYSICS & SCROLL
+    // ONE-THUMB TOUCHPAD GLIDE, TAP CLICK & LONG-PRESS RIGHT CLICK
     // =========================================================================
     const pad = document.getElementById("glideCanvas");
     let touchStartX = 0, touchStartY = 0;
     let lastTouchX = 0, lastTouchY = 0;
     let touchStartTime = 0;
     let touchMoved = false;
-    let multiTouch = false;
+    let longPressTimer = null;
+    let longPressFired = false;
+    let lastTapTime = 0;
 
     pad.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
@@ -1021,24 +1113,33 @@
         lastTouchY = touchStartY;
         touchStartTime = Date.now();
         touchMoved = false;
-        multiTouch = false;
-      } else if (e.touches.length === 2) {
-        multiTouch = true;
+        longPressFired = false;
+
+        // One-Thumb Long-Press Timer for Right Click (380ms hold without move)
+        clearTimeout(longPressTimer);
+        longPressTimer = setTimeout(() => {
+          if (!touchMoved) {
+            longPressFired = true;
+            vibrate(22);
+            triggerMouseClick("right");
+          }
+        }, 380);
       }
     }, { passive: false });
 
     pad.addEventListener("touchmove", (e) => {
       e.preventDefault();
-      if (e.touches.length === 1 && !multiTouch) {
+      if (e.touches.length === 1) {
         const cx = e.touches[0].clientX;
         const cy = e.touches[0].clientY;
-        const dx = (cx - lastTouchX) * 1.5;
-        const dy = (cy - lastTouchY) * 1.5;
+        const dx = (cx - lastTouchX) * 1.55;
+        const dy = (cy - lastTouchY) * 1.55;
         lastTouchX = cx;
         lastTouchY = cy;
 
-        if (Math.abs(cx - touchStartX) > 4 || Math.abs(cy - touchStartY) > 4) {
+        if (Math.abs(cx - touchStartX) > 5 || Math.abs(cy - touchStartY) > 5) {
           touchMoved = true;
+          clearTimeout(longPressTimer);
         }
 
         if (window.ConKeyBridge && (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5)) {
@@ -1048,17 +1149,37 @@
     }, { passive: false });
 
     pad.addEventListener("touchend", (e) => {
+      clearTimeout(longPressTimer);
       const elapsed = Date.now() - touchStartTime;
-      if (!touchMoved && elapsed < 250) {
-        if (multiTouch) {
-          triggerMouseClick("right");
+
+      if (!touchMoved && !longPressFired && elapsed < 260) {
+        const now = Date.now();
+        // Check for double-tap
+        if (now - lastTapTime < 300) {
+          triggerMouseClick("double");
+          lastTapTime = 0;
         } else {
+          lastTapTime = now;
+          // Single tap = Left Click
           triggerMouseClick("left");
         }
       }
     });
 
-    // Vertical Scroll Rail
+    // One-Thumb Drag Lock
+    function toggleDragLock() {
+      isDragLocked = !isDragLocked;
+      vibrate(14);
+      document.getElementById("btnDragLock").classList.toggle("active-lock", isDragLocked);
+      pad.classList.toggle("drag-locked", isDragLocked);
+      
+      // In Drag mode, simulate mouse button down / up
+      if (isDragLocked) {
+        triggerMouseClick("left"); // Or hold down
+      }
+    }
+
+    // Vertical Scroll Rail (One-Thumb Slide)
     const scrollRail = document.getElementById("scrollRail");
     let lastScrollY = 0;
 

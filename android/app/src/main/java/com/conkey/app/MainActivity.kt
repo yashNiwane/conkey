@@ -61,7 +61,10 @@ class MainActivity : Activity() {
     private lateinit var pillDevice: View
     private lateinit var dotStatus: View
     private lateinit var tvDeviceName: TextView
+    private lateinit var btnToggleScreen: Button
     private lateinit var webViewKeyboard: WebView
+
+    private var isScreenActive = true
 
     // Bluetooth HID Engine (Primary - Serverless, Zero Software on Laptop)
     private var bluetoothAdapter: BluetoothAdapter? = null
@@ -141,6 +144,7 @@ class MainActivity : Activity() {
         pillDevice = findViewById(R.id.pillDevice)
         dotStatus = findViewById(R.id.dotStatus)
         tvDeviceName = findViewById(R.id.tvDeviceName)
+        btnToggleScreen = findViewById(R.id.btnToggleScreen)
         webViewKeyboard = findViewById(R.id.webViewKeyboard)
 
         pillDevice.setOnClickListener {
@@ -148,9 +152,26 @@ class MainActivity : Activity() {
             showConnectionMenu()
         }
 
-        findViewById<Button>(R.id.btnSettings).setOnClickListener {
-            vibrate(15)
-            showConnectionMenu()
+        btnToggleScreen.setOnClickListener {
+            vibrate(12)
+            toggleScreenStream()
+        }
+    }
+
+    private fun toggleScreenStream() {
+        isScreenActive = !isScreenActive
+        updateScreenButtonUi()
+        val js = "if(window.setScreenStreamActive) window.setScreenStreamActive($isScreenActive);"
+        webViewKeyboard.evaluateJavascript(js, null)
+    }
+
+    private fun updateScreenButtonUi() {
+        if (isScreenActive) {
+            btnToggleScreen.text = "📺 Screen ON"
+            btnToggleScreen.setTextColor(Color.parseColor("#38BDF8"))
+        } else {
+            btnToggleScreen.text = "📺 Screen OFF"
+            btnToggleScreen.setTextColor(Color.parseColor("#94A3B8"))
         }
     }
 
@@ -812,6 +833,17 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun isHidConnected(): Boolean = hidManager?.isConnected() == true
+
+        @JavascriptInterface
+        fun isScreenActive(): Boolean = isScreenActive
+
+        @JavascriptInterface
+        fun reportScreenActive(active: Boolean) {
+            runOnUiThread {
+                isScreenActive = active
+                updateScreenButtonUi()
+            }
+        }
 
         @JavascriptInterface
         fun openConnectionMenu() {
