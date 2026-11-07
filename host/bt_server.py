@@ -83,8 +83,14 @@ class BluetoothServer:
                     self._handle_client(client_sock)
             except Exception as e:
                 if self.running:
-                    logger.warning("Bluetooth socket error (re-listening in 2s): %s", e)
-                    time.sleep(2.0)
+                    err_str = str(e)
+                    if "10050" in err_str:
+                        # Windows Bluetooth radio is selectively suspended / soft-off
+                        logger.debug("Bluetooth radio suspended by Windows power-management; retrying in 15s...")
+                        time.sleep(15.0)
+                    else:
+                        logger.warning("Bluetooth socket notice: %s (retrying in 5s)", e)
+                        time.sleep(5.0)
             finally:
                 if sock:
                     try:

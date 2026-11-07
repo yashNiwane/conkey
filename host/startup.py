@@ -6,12 +6,17 @@ Follows principle-make-operations-idempotent.
 """
 
 import argparse
+import logging
 import os
 from pathlib import Path
 import sys
 import win32com.client
+import winreg
+
+logger = logging.getLogger("conkey.startup")
 
 SHORTCUT_NAME = "ConKey.lnk"
+REG_RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
 
 def get_startup_dir() -> Path:
@@ -26,12 +31,21 @@ def get_shortcut_path() -> Path:
 
 
 def is_startup_enabled() -> bool:
-    return get_shortcut_path().exists()
+    shortcut_exists = get_shortcut_path().exists()
+    reg_exists = False
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_RUN_KEY, 0, winreg.KEY_READ) as key:
+            val, _ = winreg.QueryValueEx(key, "ConKey")
+            reg_exists = bool(val)
+    except FileNotFoundError:
+        reg_exists = False
+    return shortcut_exists or reg_exists
 
 
 def enable_startup(project_root: Path = None) -> Path:
     """
-    Idempotently creates or updates the Windows Startup shortcut pointing to pythonw.exe.
+    Idempotently registers ConKey in both Windows Startup Folder and HKCU Run Registry.
+    Guarantees silent background execution on every Windows boot/logon.
     """
     root = (project_root or Path(__file__).parent.parent).resolve()
     shortcut_path = get_shortcut_path()
@@ -45,26 +59,49 @@ def enable_startup(project_root: Path = None) -> Path:
     if not run_script.exists():
         raise FileNotFoundError(f"Host script not found at {run_script}")
 
-    ws = win32com.client.Dispatch("WScript.Shell")
-    shortcut = ws.CreateShortcut(str(shortcut_path))
-    shortcut.TargetPath = str(pythonw)
-    shortcut.Arguments = f'"{run_script}"'
-    shortcut.WorkingDirectory = str(root)
-    shortcut.Description = "ConKey Remote Keyboard Background Service"
-    shortcut.Save()
+    # 1. Create or update Windows Startup folder shortcut
+    try:
+        ws = win32com.client.Dispatch("WScript.Shell")
+        shortcut = ws.CreateShortcut(str(shortcut_path))
+        shortcut.TargetPath = str(pythonw)
+        shortcut.Arguments = f'"{run_script}"'
+        shortcut.WorkingDirectory = str(root)
+        shortcut.Description = "ConKey Remote Keyboard Background Service"
+        shortcut.Save()
+    except Exception as e:
+        logger.warning("Could not create Startup shortcut: %s", e)
+
+    # 2. Register in Windows HKCU Run Registry key for maximum reliability on Windows 11
+    cmd_str = f'"{pythonw}" "{run_script}"'
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:
+            winreg.SetValueEx(key, "ConKey", 0, winreg.REG_SZ, cmd_str)
+    except Exception as e:
+        logger.warning("Could not write HKCU Run registry: %s", e)
 
     return shortcut_path
 
 
 def disable_startup() -> bool:
     """
-    Idempotently removes the Windows Startup shortcut if it exists.
+    Idempotently removes ConKey from Windows Startup folder and Registry.
     """
+    removed = False
     shortcut_path = get_shortcut_path()
     if shortcut_path.exists():
         shortcut_path.unlink()
-        return True
-    return False
+        removed = True
+
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:
+            winreg.DeleteValue(key, "ConKey")
+            removed = True
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        logger.warning("Could not remove HKCU Run registry value: %s", e)
+
+    return removed
 
 
 def main():
