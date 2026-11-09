@@ -42,6 +42,8 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import okio.ByteString
+import okio.ByteString.Companion.toByteString
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.DatagramPacket
@@ -64,7 +66,15 @@ class MainActivity : Activity() {
     private lateinit var btnToggleScreen: Button
     private lateinit var webViewKeyboard: WebView
 
-    private var isScreenActive = true
+    private var isScreenActive = false
+
+    // Real-time voice typing (Phonon-2 runs on the laptop; audio streams over Wi-Fi)
+    private var voiceStreamer: VoiceStreamer? = null
+    private var voiceStarting = false
+    private var voiceActive = false
+    private var voiceCancelRequested = false
+    private var pendingVoiceStart = false
+    private var pendingVoiceAutoType = false
 
     // Bluetooth HID Engine (Primary - Serverless, Zero Software on Laptop)
     private var bluetoothAdapter: BluetoothAdapter? = null
@@ -97,6 +107,7 @@ class MainActivity : Activity() {
         private const val TAG = "ConKey"
         private const val REQUEST_BT_PERMS = 101
         private const val REQUEST_DISCOVERABLE = 102
+        private const val REQUEST_MIC_PERMS = 103
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -156,6 +167,7 @@ class MainActivity : Activity() {
             vibrate(12)
             toggleScreenStream()
         }
+        updateScreenButtonUi()
     }
 
     private fun toggleScreenStream() {
@@ -167,10 +179,10 @@ class MainActivity : Activity() {
 
     private fun updateScreenButtonUi() {
         if (isScreenActive) {
-            btnToggleScreen.text = "📺 Screen ON"
+            btnToggleScreen.text = "Screen ON"
             btnToggleScreen.setTextColor(Color.parseColor("#38BDF8"))
         } else {
-            btnToggleScreen.text = "📺 Screen OFF"
+            btnToggleScreen.text = "Screen OFF"
             btnToggleScreen.setTextColor(Color.parseColor("#94A3B8"))
         }
     }
@@ -262,6 +274,19 @@ class MainActivity : Activity() {
             } else {
                 Toast.makeText(this, "Bluetooth permissions are required for the wireless keyboard.", Toast.LENGTH_LONG).show()
                 updateStatusUi()
+            }
+        } else if (requestCode == REQUEST_MIC_PERMS) {
+            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            val shouldStart = pendingVoiceStart
+            pendingVoiceStart = false
+            if (granted && shouldStart) {
+                beginVoiceSession(pendingVoiceAutoType)
+            } else if (!granted) {
+                dispatchVoiceEvent(
+                    JSONObject()
+                        .put("type", "voice_error")
+                        .put("message", "Microphone permission is required for voice typing.")
+                )
             }
         }
     }
@@ -364,11 +389,11 @@ class MainActivity : Activity() {
         val bonded = bluetoothAdapter?.bondedDevices?.toList() ?: emptyList()
         val items = mutableListOf<String>()
 
-        items.add("📡 Make Phone Discoverable (Pair New Laptop)")
+        items.add("Make Phone Discoverable (Pair New Laptop)")
         for (d in bonded) {
-            items.add("💻 Connect: ${d.name ?: d.address}")
+            items.add("Connect: ${d.name ?: d.address}")
         }
-        items.add("⚙ Open Phone Bluetooth Settings")
+        items.add("Open Phone Bluetooth Settings")
 
         AlertDialog.Builder(this)
             .setTitle("Bluetooth HID Keyboard & Mouse")
@@ -520,6 +545,14 @@ class MainActivity : Activity() {
                                 }
                             }
                         }
+                        "voice_loading",
+                        "voice_ready",
+                        "voice_partial",
+                        "voice_final",
+                        "voice_done",
+                        "voice_error" -> {
+                            handleVoiceServerMessage(json.optString("type"), json)
+                        }
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "Error parsing WS message: $text", e)
@@ -529,6 +562,7 @@ class MainActivity : Activity() {
             override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
                 isConnecting.set(false)
                 isWifiConnected = false
+                handleVoiceTransportLost()
                 runOnUiThread {
                     updateStatusUi()
                 }
@@ -537,6 +571,7 @@ class MainActivity : Activity() {
             override fun onClosed(ws: WebSocket, code: Int, reason: String) {
                 isConnecting.set(false)
                 isWifiConnected = false
+                handleVoiceTransportLost()
                 runOnUiThread {
                     updateStatusUi()
                 }
@@ -727,6 +762,146 @@ class MainActivity : Activity() {
         }
     }
 
+    // =========================================================================
+    // REAL-TIME VOICE TYPING (Phonon-2 streaming on the laptop)
+    // =========================================================================
+
+    private fun requestStartVoice(autoType: Boolean): String {
+        if (!isWifiConnected || webSocket == null) return "no_wifi"
+        if (voiceActive || voiceStarting) return "already"
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+            checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingVoiceStart = true
+            pendingVoiceAutoType = autoType
+            mainHandler.post {
+                requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_MIC_PERMS)
+            }
+            return "permission"
+        }
+        return beginVoiceSession(autoType)
+    }
+
+    private fun beginVoiceSession(autoType: Boolean): String {
+        if (!isWifiConnected || webSocket == null) return "no_wifi"
+        if (voiceActive || voiceStarting) return "already"
+        voiceStarting = true
+        voiceCancelRequested = false
+        pendingVoiceAutoType = autoType
+        val payload = JSONObject().apply {
+            put("sample_rate", VoiceStreamer.SAMPLE_RATE)
+            put("format", "pcm_s16le")
+            put("auto_type", autoType)
+        }
+        sendWifiCommand("voice_start", payload)
+        return "ok"
+    }
+
+    private fun startVoiceCapture() {
+        voiceStarting = false
+        if (voiceActive) return
+        if (!isWifiConnected || webSocket == null) {
+            dispatchVoiceEvent(
+                JSONObject().put("type", "voice_error")
+                    .put("message", "Lost the Wi-Fi connection to the laptop.")
+            )
+            return
+        }
+
+        val streamer = VoiceStreamer(
+            onChunk = { data ->
+                try {
+                    webSocket?.send(data.toByteString())
+                } catch (e: Exception) {
+                    Log.w(TAG, "Voice chunk send failed: ${e.message}")
+                }
+            },
+            onError = { message ->
+                mainHandler.post {
+                    voiceActive = false
+                    voiceStarting = false
+                    voiceStreamer?.stop()
+                    voiceStreamer = null
+                    dispatchVoiceEvent(
+                        JSONObject().put("type", "voice_error").put("message", message)
+                    )
+                }
+            },
+        )
+        voiceStreamer = streamer
+        voiceActive = true
+        streamer.start()
+    }
+
+    private fun stopVoiceCapture() {
+        voiceActive = false
+        voiceStarting = false
+        voiceStreamer?.stop()
+        voiceStreamer = null
+    }
+
+    private fun requestStopVoice() {
+        if (voiceStarting && !voiceActive) {
+            // Still loading the model: ask the host to abort, and ignore the
+            // ready event if it was already on its way.
+            voiceStarting = false
+            voiceCancelRequested = true
+            sendWifiCommand("voice_cancel", JSONObject())
+            dispatchVoiceEvent(
+                JSONObject().put("type", "voice_error")
+                    .put("message", "Voice typing cancelled.")
+            )
+            return
+        }
+        if (!voiceActive) return
+        stopVoiceCapture()
+        // Binary chunks are queued in order; the text stop frame follows them.
+        sendWifiCommand("voice_stop", JSONObject())
+    }
+
+    private fun handleVoiceServerMessage(type: String, json: JSONObject) {
+        if (type == "voice_ready") {
+            if (voiceCancelRequested) {
+                voiceCancelRequested = false
+                voiceStarting = false
+                sendWifiCommand("voice_cancel", JSONObject())
+                dispatchVoiceEvent(
+                    JSONObject().put("type", "voice_error")
+                        .put("message", "Voice typing cancelled.")
+                )
+                return
+            }
+            startVoiceCapture()
+        } else if (type == "voice_done" || type == "voice_error") {
+            voiceCancelRequested = false
+            stopVoiceCapture()
+        }
+        dispatchVoiceEvent(json)
+    }
+
+    private fun handleVoiceTransportLost() {
+        val wasLive = voiceActive || voiceStarting
+        voiceCancelRequested = false
+        stopVoiceCapture()
+        if (wasLive) {
+            dispatchVoiceEvent(
+                JSONObject().put("type", "voice_error")
+                    .put("message", "Disconnected from the laptop. Voice typing stopped.")
+            )
+        }
+    }
+
+    private fun dispatchVoiceEvent(event: JSONObject) {
+        val payload = event.toString()
+        mainHandler.post {
+            webViewKeyboard.evaluateJavascript(
+                "window.onVoiceEvent && window.onVoiceEvent($payload);",
+                null
+            )
+        }
+    }
+
     private fun promptConnectionRequired() {
         runOnUiThread {
             Toast.makeText(this, "Please pair or connect to your laptop first.", Toast.LENGTH_SHORT).show()
@@ -755,12 +930,12 @@ class MainActivity : Activity() {
         }
 
         val options = arrayOf(
-            "🔵 Bluetooth HID: Pair & Connect (Zero Software)",
-            "📡 Make Phone Discoverable (5 Min)",
-            "⚡ Connect via Wi-Fi ($currentHost)",
-            "🔍 Auto-Scan Local Wi-Fi",
-            "✏ Enter Laptop IP Manually",
-            "📖 Zero-Software Pairing Instructions"
+            "Bluetooth HID: Pair & Connect (Zero Software)",
+            "Make Phone Discoverable (5 Min)",
+            "Connect via Wi-Fi ($currentHost)",
+            "Auto-Scan Local Wi-Fi",
+            "Enter Laptop IP Manually",
+            "Zero-Software Pairing Instructions"
         )
 
         AlertDialog.Builder(this)
@@ -833,6 +1008,17 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun isHidConnected(): Boolean = hidManager?.isConnected() == true
+
+        @JavascriptInterface
+        fun isVoiceAvailable(): Boolean = isWifiConnected && webSocket != null
+
+        @JavascriptInterface
+        fun startVoice(autoType: Boolean): String = requestStartVoice(autoType)
+
+        @JavascriptInterface
+        fun stopVoice() {
+            mainHandler.post { requestStopVoice() }
+        }
 
         @JavascriptInterface
         fun isScreenActive(): Boolean = isScreenActive
@@ -920,8 +1106,17 @@ class MainActivity : Activity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        // Never leave the phone microphone hot when ConKey is not in front.
+        if (voiceActive) {
+            requestStopVoice()
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        stopVoiceCapture()
         hidManager?.stop()
         disconnectWifi()
         try {

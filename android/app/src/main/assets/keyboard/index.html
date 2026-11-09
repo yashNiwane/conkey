@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ConKey Pro Controller</title>
+  <!-- Lucide Icons Library (Offline) -->
+  <script src="lucide.min.js"></script>
+
   <style>
     :root {
       --bg: #090a0f;
@@ -564,9 +567,121 @@
       font-weight: 700;
       cursor: pointer;
     }
+
+    /* Lucide Vector Icons */
+    .lucide {
+      width: 15px;
+      height: 15px;
+      stroke-width: 2.2;
+      vertical-align: middle;
+      display: inline-block;
+    }
+    .tool-key .lucide {
+      width: 14px;
+      height: 14px;
+      vertical-align: -1px;
+    }
+    .screen-ctrl-btn .lucide {
+      width: 14px;
+      height: 14px;
+    }
+    .bottom-tab .lucide {
+      width: 15px;
+      height: 15px;
+      margin-right: 4px;
+    }
+    .placeholder-icon-svg {
+      width: 44px;
+      height: 44px;
+      stroke-width: 1.5;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    /* Dedicated Global Voice Typing Button */
+    .tool-key-voice {
+      background: #0f172a;
+      color: #38bdf8;
+      border: 1px solid #0284c7;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 10px;
+      box-shadow: 0 0 6px rgba(56, 189, 248, 0.2);
+    }
+    .tool-key-voice.starting {
+      background: #b45309;
+      border-color: #f59e0b;
+      color: #ffffff;
+    }
+    .tool-key-voice.listening {
+      background: #dc2626;
+      border-color: #f87171;
+      color: #ffffff;
+      animation: voicePulse 1.2s ease-in-out infinite;
+    }
+    .tool-key-voice:disabled {
+      opacity: 0.45;
+      animation: none;
+    }
+
+    /* Live Dictation Status Pill */
+    .voice-pill {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid #38bdf8;
+      color: #f8fafc;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      z-index: 99999;
+      pointer-events: none;
+      max-width: 90vw;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .voice-pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: #38bdf8;
+      border-radius: 50%;
+      animation: voiceDot 0.8s infinite alternate;
+      flex-shrink: 0;
+    }
+    .voice-pill.listening {
+      border-color: #ef4444;
+    }
+    .voice-pill.listening .voice-pulse-dot {
+      background: #ef4444;
+    }
+
+    @keyframes voiceDot {
+      0% { opacity: 0.3; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1.2); }
+    }
+    @keyframes voicePulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+      50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+    }
   </style>
 </head>
 <body>
+
+  <!-- Live Dictation Status Pill (System-wide live feedback) -->
+  <div id="voicePill" class="voice-pill" style="display: none;">
+    <span class="voice-pulse-dot"></span>
+    <span id="voicePillText">Listening... speak into phone</span>
+  </div>
 
   <!-- =========================================================================
        TOP HALF: LIVE DESKTOP SCREEN VIEWFINDER
@@ -575,13 +690,13 @@
     <!-- Screen Overlay Bar -->
     <div class="screen-overlay-bar">
       <div class="screen-badge">
-        <span class="badge-dot" id="liveDot"></span>
-        <span id="screenStatusText">LIVE SCREEN</span>
+        <span class="badge-dot paused" id="liveDot"></span>
+        <span id="screenStatusText">STREAM OFF</span>
       </div>
       <div class="screen-controls">
-        <button class="screen-ctrl-btn" id="btnToggleStream" title="Pause / Resume Stream" onclick="toggleStreamFromWeb()">⏸</button>
-        <button class="screen-ctrl-btn" id="btnTouchMode" title="Direct Touch Click" onclick="toggleDirectTouch()">👆</button>
-        <button class="screen-ctrl-btn" id="btnResizeScreen" title="Expand / Collapse View" onclick="toggleScreenSize()">⤢</button>
+        <button class="screen-ctrl-btn" id="btnToggleStream" title="Start Screen Stream" onclick="toggleStreamFromWeb()"><i data-lucide="play"></i></button>
+        <button class="screen-ctrl-btn" id="btnTouchMode" title="Direct Touch Click" onclick="toggleDirectTouch()"><i data-lucide="mouse-pointer-click"></i></button>
+        <button class="screen-ctrl-btn" id="btnResizeScreen" title="Expand / Collapse View" onclick="toggleScreenSize()"><i data-lucide="maximize-2"></i></button>
       </div>
     </div>
 
@@ -591,7 +706,7 @@
 
       <!-- Ambient Offline / Paused Placeholder -->
       <div id="screenPlaceholder" class="screen-placeholder">
-        <div class="screen-placeholder-icon">🖥️</div>
+        <div class="screen-placeholder-icon"><i data-lucide="monitor" class="placeholder-icon-svg"></i></div>
         <div class="screen-placeholder-title" id="hudTitle">Live Desktop Mirror</div>
         <div class="screen-placeholder-sub" id="hudSub">Real-time screen view with visible cursor and touch control.</div>
         <button class="hud-btn" id="hudBtn" onclick="resumeOrConnectStream()">Start Screen Stream</button>
@@ -601,8 +716,8 @@
 
   <!-- Direct Typing Bar (Toggled from keyboard toolbar) -->
   <div id="typingBar" class="typing-bar">
-    <input type="text" id="directTextInput" class="typing-input" placeholder="Type or dictate using phone keyboard..." />
-    <button class="typing-send-btn" onclick="sendDirectText()">Send</button>
+    <input type="text" id="directTextInput" class="typing-input" placeholder="Type text to send to laptop..." />
+    <button id="btnSendText" class="typing-send-btn" onclick="sendDirectText()">Send</button>
   </div>
 
   <!-- =========================================================================
@@ -616,16 +731,17 @@
         
         <!-- PC Utility Toolbar Row (Essential PC Modifiers & Shortcuts) -->
         <div class="pc-toolbar">
+          <button class="tool-key tool-key-voice" id="btnGlobalVoice" onclick="toggleGlobalVoice()" title="System-wide Voice Typing (Types directly into focused laptop window)"><i data-lucide="audio-lines"></i> <span id="voiceBtnLabel">Dictate</span></button>
           <button class="tool-key" id="modCtrl" onclick="toggleModifier('CTRL')">Ctrl</button>
           <button class="tool-key" id="modAlt" onclick="toggleModifier('ALT')">Alt</button>
-          <button class="tool-key" id="modWin" onclick="toggleModifier('WIN')">⊞ Win</button>
+          <button class="tool-key" id="modWin" onclick="toggleModifier('WIN')">Win</button>
           <button class="tool-key" onclick="triggerKey('ESCAPE')">Esc</button>
           <button class="tool-key" onclick="triggerKey('TAB')">Tab</button>
           <button class="tool-key action-chip" onclick="triggerCombo(['CTRL'], 'C')">Ctrl+C</button>
           <button class="tool-key action-chip" onclick="triggerCombo(['CTRL'], 'V')">Ctrl+V</button>
           <button class="tool-key action-chip" onclick="triggerCombo(['ALT'], 'TAB')">Alt+Tab</button>
           <button class="tool-key action-chip" onclick="triggerCombo(['WIN'], 'D')">Win+D</button>
-          <button class="tool-key" onclick="toggleTypingBar()">💬</button>
+          <button class="tool-key" onclick="toggleTypingBar()"><i data-lucide="message-square"></i></button>
         </div>
 
         <!-- ALPHA KEYBOARD VIEW (DEFAULT) -->
@@ -659,7 +775,7 @@
 
           <!-- Row 3 -->
           <div class="key-row">
-            <button class="key key-special key-shift" id="btnShift" onclick="toggleShift()">⇧</button>
+            <button class="key key-special key-shift" id="btnShift" onclick="toggleShift()"><i data-lucide="arrow-big-up"></i></button>
             <button class="key" onclick="handleAlphaKey('z', 'Z')">z</button>
             <button class="key" onclick="handleAlphaKey('x', 'X')">x</button>
             <button class="key" onclick="handleAlphaKey('c', 'C')">c</button>
@@ -667,7 +783,7 @@
             <button class="key" onclick="handleAlphaKey('b', 'B')">b</button>
             <button class="key" onclick="handleAlphaKey('n', 'N')">n</button>
             <button class="key" onclick="handleAlphaKey('m', 'M')">m</button>
-            <button class="key key-special key-bksp" onclick="triggerKey('BACKSPACE')">⌫</button>
+            <button class="key key-special key-bksp" onclick="triggerKey('BACKSPACE')"><i data-lucide="delete"></i></button>
           </div>
 
           <!-- Row 4 -->
@@ -676,7 +792,7 @@
             <button class="key key-special key-mod" onclick="triggerKey(',')">,</button>
             <button class="key key-space" onclick="triggerKey('SPACE')">Space</button>
             <button class="key key-special key-mod" onclick="triggerKey('.')">.</button>
-            <button class="key key-accent key-enter" onclick="triggerKey('ENTER')">⏎</button>
+            <button class="key key-accent key-enter" onclick="triggerKey('ENTER')"><i data-lucide="corner-down-left"></i></button>
           </div>
         </div>
 
@@ -719,7 +835,7 @@
             <button class="key" onclick="triggerKey(';')">;</button>
             <button class="key" onclick="triggerKey('!')">!</button>
             <button class="key" onclick="triggerKey('?')">?</button>
-            <button class="key key-special key-bksp" onclick="triggerKey('BACKSPACE')">⌫</button>
+            <button class="key key-special key-bksp" onclick="triggerKey('BACKSPACE')"><i data-lucide="delete"></i></button>
           </div>
 
           <!-- Symbols Row 3 -->
@@ -728,7 +844,7 @@
             <button class="key key-special key-mod" onclick="triggerKey('/')">/</button>
             <button class="key key-space" onclick="triggerKey('SPACE')">Space</button>
             <button class="key key-special key-mod" onclick="triggerKey('=')">=</button>
-            <button class="key key-accent key-enter" onclick="triggerKey('ENTER')">⏎</button>
+            <button class="key key-accent key-enter" onclick="triggerKey('ENTER')"><i data-lucide="corner-down-left"></i></button>
           </div>
         </div>
 
@@ -750,13 +866,13 @@
         <!-- Thumb-Resting Action Buttons (No duplicate Left Click) -->
         <div class="thumb-actions-bar">
           <button class="thumb-btn" id="btnDragLock" onclick="toggleDragLock()">
-            <span>✊ Drag / Select</span>
+            <span><i data-lucide="hand"></i> Drag / Select</span>
           </button>
           <button class="thumb-btn" onclick="triggerMouseClick('middle')">
             <span>Middle</span>
           </button>
           <button class="thumb-btn" style="flex: 1.4; color: var(--accent-sky);" onclick="triggerMouseClick('right')">
-            <span>Right Click ▤</span>
+            <span>Right Click</span>
           </button>
         </div>
       </div>
@@ -769,10 +885,10 @@
        ========================================================================= -->
   <div class="bottom-nav">
     <button id="navKey" class="bottom-tab active" onclick="switchController('keyboard')">
-      <span>⌨ Keyboard</span>
+      <span><i data-lucide="keyboard"></i> Keyboard</span>
     </button>
     <button id="navTouch" class="bottom-tab" onclick="switchController('touchpad')">
-      <span>🖲 Touchpad</span>
+      <span><i data-lucide="mouse"></i> Touchpad</span>
     </button>
   </div>
 
@@ -785,7 +901,7 @@
     let isArmedWin = false;
     let isShiftActive = false;
     let isDirectTouchClick = true;
-    let isStreamActive = true;
+    let isStreamActive = (window.ConKeyBridge && typeof window.ConKeyBridge.isScreenActive === "function") ? window.ConKeyBridge.isScreenActive() : false;
     let isDragLocked = false;
     let currentMode = "keyboard"; // "keyboard" | "touchpad"
     let screenState = "normal";   // "normal" | "maximized" | "collapsed"
@@ -818,8 +934,9 @@
         screenPlaceholder.style.display = "none";
         liveDot.className = "badge-dot";
         screenStatusText.innerText = "LIVE SCREEN";
-        btnToggleStream.innerText = "⏸";
+        btnToggleStream.innerHTML = '<i data-lucide="pause"></i>';
         btnToggleStream.title = "Pause Screen Stream";
+        if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
       };
       screenImg.onerror = function() {
         showScreenOffline();
@@ -827,24 +944,27 @@
     }
 
     function showScreenOffline() {
+      screenImg.src = "";
       screenImg.style.display = "none";
       screenPlaceholder.style.display = "flex";
       liveDot.className = "badge-dot paused";
 
       if (!isStreamActive) {
-        screenStatusText.innerText = "STREAM PAUSED";
-        document.getElementById("hudTitle").innerText = "Screen Stream Paused";
-        document.getElementById("hudSub").innerText = "Stream is paused to save battery and network bandwidth.";
-        document.getElementById("hudBtn").innerText = "Resume Screen Stream";
-        btnToggleStream.innerText = "▶";
-        btnToggleStream.title = "Resume Screen Stream";
+        screenStatusText.innerText = "STREAM OFF";
+        document.getElementById("hudTitle").innerText = "Live Desktop Mirror";
+        document.getElementById("hudSub").innerText = "Stream is off. Tap below to start streaming your laptop screen.";
+        document.getElementById("hudBtn").innerText = "Start Screen Stream";
+        btnToggleStream.innerHTML = '<i data-lucide="play"></i>';
+        btnToggleStream.title = "Start Screen Stream";
       } else {
         screenStatusText.innerText = "OFFLINE";
         document.getElementById("hudTitle").innerText = "Live Desktop Mirror";
         document.getElementById("hudSub").innerText = "Connect to Wi-Fi to view laptop screen in real time with touch controls.";
         document.getElementById("hudBtn").innerText = "Connect Wi-Fi Stream";
-        btnToggleStream.innerText = "▶";
+        btnToggleStream.innerHTML = '<i data-lucide="play"></i>';
+        btnToggleStream.title = "Connect Wi-Fi Stream";
       }
+      if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
     }
 
     function resumeOrConnectStream() {
@@ -884,6 +1004,7 @@
       } else {
         showScreenOffline();
       }
+      if (typeof updateVoiceButtons === "function") updateVoiceButtons();
     };
 
     // =========================================================================
@@ -1044,6 +1165,7 @@
       bar.style.display = isVisible ? "none" : "flex";
       if (!isVisible) {
         document.getElementById("directTextInput").focus();
+        updateVoiceButtons();
       }
     }
 
@@ -1058,6 +1180,108 @@
         input.value = "";
       }
     }
+
+    // =========================================================================
+    // SYSTEM-WIDE REAL-TIME VOICE TYPING (Phonon-2 live typing into focused window)
+    // =========================================================================
+    let voiceActive = false;
+    let voiceStarting = false;
+
+    const voiceBtn = document.getElementById("btnGlobalVoice");
+    const voiceBtnLabel = document.getElementById("voiceBtnLabel");
+    const voicePill = document.getElementById("voicePill");
+    const voicePillText = document.getElementById("voicePillText");
+
+    function updateVoiceUi() {
+      if (!voiceBtn) return;
+      voiceBtn.classList.toggle("listening", voiceActive);
+      voiceBtn.classList.toggle("starting", voiceStarting && !voiceActive);
+      const available = !!(window.ConKeyBridge && window.ConKeyBridge.isVoiceAvailable && window.ConKeyBridge.isVoiceAvailable());
+      voiceBtn.disabled = !voiceActive && !voiceStarting && !available;
+      if (voiceBtnLabel) {
+        voiceBtnLabel.textContent = voiceActive ? "Stop" : (voiceStarting ? "Starting..." : "Dictate");
+      }
+      if (voicePill) {
+        voicePill.style.display = (voiceActive || voiceStarting) ? "flex" : "none";
+        voicePill.classList.toggle("listening", voiceActive);
+      }
+      if (window.lucide && window.lucide.createIcons) {
+        window.lucide.createIcons();
+      }
+    }
+
+    function toggleGlobalVoice() {
+      vibrate(14);
+      if (voiceActive || voiceStarting) {
+        if (window.ConKeyBridge && window.ConKeyBridge.stopVoice) {
+          window.ConKeyBridge.stopVoice();
+        }
+        voiceStarting = false;
+        if (voicePillText) voicePillText.textContent = "Finishing dictation...";
+        updateVoiceUi();
+        return;
+      }
+
+      if (!window.ConKeyBridge || !window.ConKeyBridge.startVoice) {
+        alert("Voice typing is available in the ConKey app over Wi-Fi.");
+        return;
+      }
+      if (!window.ConKeyBridge.isVoiceAvailable || !window.ConKeyBridge.isVoiceAvailable()) {
+        if (window.ConKeyBridge.openConnectionMenu) window.ConKeyBridge.openConnectionMenu();
+        return;
+      }
+
+      const res = window.ConKeyBridge.startVoice(true);
+      if (res === "ok" || res === "permission") {
+        voiceStarting = true;
+        if (voicePillText) {
+          voicePillText.textContent = res === "permission"
+            ? "Allow microphone permission to dictate..."
+            : "Starting Phonon-2 engine on laptop...";
+        }
+      } else if (res === "no_wifi") {
+        if (voicePillText) voicePillText.textContent = "Connect to laptop via Wi-Fi to use voice typing.";
+      }
+      updateVoiceUi();
+    }
+
+    window.onVoiceEvent = function(event) {
+      if (!event || !event.type) return;
+      switch (event.type) {
+        case "voice_loading":
+          voiceStarting = true;
+          if (voicePillText) voicePillText.textContent = event.message || "Loading Phonon-2...";
+          break;
+        case "voice_ready":
+          voiceStarting = false;
+          voiceActive = true;
+          if (voicePillText) voicePillText.textContent = "Listening... speak now";
+          break;
+        case "voice_partial":
+          if (voicePillText) voicePillText.textContent = event.text || "Listening...";
+          break;
+        case "voice_final":
+          if (voicePillText) voicePillText.textContent = event.text || "";
+          break;
+        case "voice_done":
+          voiceActive = false;
+          voiceStarting = false;
+          if (voicePillText) voicePillText.textContent = event.text ? ("Done: " + event.text) : "Dictation completed";
+          setTimeout(function() {
+            if (!voiceActive && !voiceStarting && voicePill) voicePill.style.display = "none";
+          }, 1800);
+          break;
+        case "voice_error":
+          voiceActive = false;
+          voiceStarting = false;
+          if (voicePillText) voicePillText.textContent = event.message || "Voice typing stopped.";
+          setTimeout(function() {
+            if (!voiceActive && !voiceStarting && voicePill) voicePill.style.display = "none";
+          }, 3000);
+          break;
+      }
+      updateVoiceUi();
+    };
 
     document.getElementById("directTextInput").addEventListener("keydown", function(e) {
       if (e.key === "Enter") {
@@ -1160,6 +1384,10 @@
     // Startup
     window.addEventListener("DOMContentLoaded", () => {
       initScreenStream();
+      updateVoiceUi();
+      if (window.lucide && window.lucide.createIcons) {
+        window.lucide.createIcons();
+      }
     });
   </script>
 </body>

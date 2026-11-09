@@ -335,6 +335,71 @@ def type_text(text: str, inter_char_delay: float = 0.0) -> None:
             time.sleep(inter_char_delay)
 
 
+def sync_live_text(prev: str, curr: str) -> None:
+    """
+    Synchronizes the on-screen live typed text from `prev` to `curr`
+    in whichever text field currently has focus, erasing divergence
+    with backspaces and typing the new suffix via SendInput unicode events.
+    """
+    if prev == curr:
+        return
+    ensure_desktop()
+    common = 0
+    min_len = min(len(prev), len(curr))
+    while common < min_len and prev[common] == curr[common]:
+        common += 1
+    backspaces = len(prev) - common
+    typed = curr[common:]
+
+    inputs: List[INPUT] = []
+    # Send backspaces for diverging characters
+    for _ in range(backspaces):
+        inputs.append(INPUT(
+            type=INPUT_KEYBOARD,
+            ki=KEYBDINPUT(wVk=VK_MAP["BACKSPACE"], wScan=0, dwFlags=0, time=0, dwExtraInfo=0)
+        ))
+        inputs.append(INPUT(
+            type=INPUT_KEYBOARD,
+            ki=KEYBDINPUT(wVk=VK_MAP["BACKSPACE"], wScan=0, dwFlags=KEYEVENTF_KEYUP, time=0, dwExtraInfo=0)
+        ))
+
+    # Type new characters
+    for char in typed:
+        if char == '\r':
+            continue
+        elif char == '\n':
+            inputs.append(INPUT(
+                type=INPUT_KEYBOARD,
+                ki=KEYBDINPUT(wVk=VK_MAP["ENTER"], wScan=0, dwFlags=0, time=0, dwExtraInfo=0)
+            ))
+            inputs.append(INPUT(
+                type=INPUT_KEYBOARD,
+                ki=KEYBDINPUT(wVk=VK_MAP["ENTER"], wScan=0, dwFlags=KEYEVENTF_KEYUP, time=0, dwExtraInfo=0)
+            ))
+        elif char == '\t':
+            inputs.append(INPUT(
+                type=INPUT_KEYBOARD,
+                ki=KEYBDINPUT(wVk=VK_MAP["TAB"], wScan=0, dwFlags=0, time=0, dwExtraInfo=0)
+            ))
+            inputs.append(INPUT(
+                type=INPUT_KEYBOARD,
+                ki=KEYBDINPUT(wVk=VK_MAP["TAB"], wScan=0, dwFlags=KEYEVENTF_KEYUP, time=0, dwExtraInfo=0)
+            ))
+        else:
+            code = ord(char)
+            inputs.append(INPUT(
+                type=INPUT_KEYBOARD,
+                ki=KEYBDINPUT(wVk=0, wScan=code, dwFlags=KEYEVENTF_UNICODE, time=0, dwExtraInfo=0)
+            ))
+            inputs.append(INPUT(
+                type=INPUT_KEYBOARD,
+                ki=KEYBDINPUT(wVk=0, wScan=code, dwFlags=KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, time=0, dwExtraInfo=0)
+            ))
+
+    if inputs:
+        _send_inputs(inputs)
+
+
 def mouse_move(dx: int, dy: int) -> None:
     ensure_desktop()
     inp = INPUT(

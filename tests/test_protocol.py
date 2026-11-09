@@ -10,6 +10,9 @@ from host.protocol import (
     MouseMoveCommand,
     MouseClickCommand,
     PingCommand,
+    VoiceStartCommand,
+    VoiceStopCommand,
+    VoiceCancelCommand,
     SessionState,
 )
 
@@ -58,6 +61,31 @@ def test_parse_errors():
         parse_command('{"type": "auth", "payload": {}}')
     with pytest.raises(ProtocolError):
         parse_command('{"type": "key_combo", "payload": {"modifiers": "not a list"}}')
+
+
+def test_parse_voice_commands():
+    start = parse_command(
+        '{"type": "voice_start", "payload": {"sample_rate": 16000, "format": "pcm_s16le", "auto_type": true}}'
+    )
+    assert isinstance(start, VoiceStartCommand)
+    assert start.sample_rate == 16000
+    assert start.audio_format == "pcm_s16le"
+    assert start.auto_type is True
+
+    # Defaults keep a minimal client simple.
+    start = parse_command('{"type": "voice_start", "payload": {}}')
+    assert isinstance(start, VoiceStartCommand)
+    assert start.sample_rate == 16000
+    assert start.audio_format == "pcm_s16le"
+    assert start.auto_type is False
+
+    assert isinstance(parse_command('{"type": "voice_stop", "payload": {}}'), VoiceStopCommand)
+    assert isinstance(parse_command('{"type": "voice_cancel", "payload": {}}'), VoiceCancelCommand)
+
+    with pytest.raises(ProtocolError):
+        parse_command('{"type": "voice_start", "payload": {"sample_rate": 44100}}')
+    with pytest.raises(ProtocolError):
+        parse_command('{"type": "voice_start", "payload": {"format": "mp3"}}')
 
 def test_session_state_auth_and_lockout():
     session = SessionState()

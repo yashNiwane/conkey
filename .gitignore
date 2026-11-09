@@ -3,6 +3,14 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 *.log
+*.pid
+*.wav
+
+# Builds & Packaging Artifacts
+dist/
+dist_linux/
+dist_windows/
+downloads/conkey-windows/
 
 # Android & Gradle
 .gradle/
@@ -11,3 +19,6 @@ android/app/build/
 android/.gradle/
 local.properties
 *.apk.idsig
+
+# Local audits & temporary test runs
+.audit/

@@ -4,5 +4,10 @@
   "pin": "2026",
   "autostart": true,
   "device_name": "YashN's Laptop (ave)",
-  "device_id": "805a32eddbbd"
+  "device_id": "805a32eddbbd",
+  "voice_enabled": true,
+  "phonon_model": "phonon-2",
+  "phonon_port": 8010,
+  "phonon_threads": 0,
+  "phonon_command": ""
 }

@@ -48,3 +48,17 @@ def test_simulated_calls_do_not_crash():
     key_combo(["CTRL"], "V")
     mouse_move(0, 0)
     mouse_scroll(0)
+
+def test_sync_live_text_simulation():
+    from host.win_keyboard import sync_live_text
+    # Sequential partial updates
+    sync_live_text("", "Best")
+    sync_live_text("Best", "Best restaurants")
+    sync_live_text("Best restaurants", "Best restaurants near")
+    sync_live_text("Best restaurants near", "Best restaurants near me")
+    # Punctuation / segment commit
+    sync_live_text("Best restaurants near me", "Best restaurants near me. ")
+    # Correction simulation
+    sync_live_text("Hullo", "Hello world")
+    # Identical text no-op
+    sync_live_text("Same", "Same")

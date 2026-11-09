@@ -82,6 +82,25 @@ class PingCommand:
     client_time: float
 
 
+@dataclass(frozen=True)
+class VoiceStartCommand:
+    """Opens a live 16 kHz mono PCM stream to the laptop's Phonon-2 engine."""
+
+    sample_rate: int = 16000
+    audio_format: str = "pcm_s16le"
+    auto_type: bool = False
+
+
+@dataclass(frozen=True)
+class VoiceStopCommand:
+    """Stops capture, flushes the tail and returns the full transcript."""
+
+
+@dataclass(frozen=True)
+class VoiceCancelCommand:
+    """Aborts an in-flight voice session without waiting for a final decode."""
+
+
 Command = (
     AuthCommand
     | TypeTextCommand
@@ -95,6 +114,9 @@ Command = (
     | MouseClickCommand
     | MouseScrollCommand
     | PingCommand
+    | VoiceStartCommand
+    | VoiceStopCommand
+    | VoiceCancelCommand
 )
 
 
@@ -207,6 +229,32 @@ def parse_command(raw_json: str | bytes | dict) -> Command:
     if cmd_type == "ping":
         client_time = float(payload.get("timestamp", time.time()))
         return PingCommand(client_time=client_time)
+
+    if cmd_type == "voice_start":
+        try:
+            sample_rate = int(payload.get("sample_rate", 16000))
+        except (ValueError, TypeError) as err:
+            raise ProtocolError("voice_start sample_rate must be an integer") from err
+        if sample_rate != 16000:
+            raise ProtocolError(
+                "voice_start requires 16 kHz audio; resample on the client"
+            )
+        audio_format = payload.get("format", "pcm_s16le")
+        if audio_format not in ("pcm_s16le", "pcm_f32le"):
+            raise ProtocolError(
+                "voice_start format must be 'pcm_s16le' or 'pcm_f32le'"
+            )
+        return VoiceStartCommand(
+            sample_rate=sample_rate,
+            audio_format=audio_format,
+            auto_type=bool(payload.get("auto_type", False)),
+        )
+
+    if cmd_type == "voice_stop":
+        return VoiceStopCommand()
+
+    if cmd_type == "voice_cancel":
+        return VoiceCancelCommand()
 
     raise ProtocolError(f"Unsupported command type: '{cmd_type}'")
 

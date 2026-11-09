@@ -41,6 +41,35 @@ def main():
     parser.add_argument("--port", type=int, default=None, help="HTTP/WebSocket port")
     parser.add_argument("--discovery-port", type=int, default=None, help="UDP discovery port")
     parser.add_argument("--pin", type=str, default=None, help="Pairing PIN")
+    parser.add_argument(
+        "--no-voice",
+        action="store_true",
+        help="Disable Phonon-2 streaming voice typing",
+    )
+    parser.add_argument(
+        "--phonon-port",
+        type=int,
+        default=None,
+        help="Local port for the Phonon speech server (default 8010)",
+    )
+    parser.add_argument(
+        "--phonon-model",
+        type=str,
+        default=None,
+        help="Phonon model name (default phonon-2)",
+    )
+    parser.add_argument(
+        "--phonon-threads",
+        type=int,
+        default=None,
+        help="CPU threads for Phonon (0 = auto)",
+    )
+    parser.add_argument(
+        "--phonon-command",
+        type=str,
+        default=None,
+        help="Path to the fermion executable if it is not on PATH",
+    )
     args = parser.parse_args()
 
     # Load persistent config
@@ -55,7 +84,16 @@ def main():
         print(f"ConKey is already running on port {port}. Exiting cleanly.")
         return
 
-    server = ConKeyServer(port=port, discovery_port=discovery_port, pin=pin)
+    server = ConKeyServer(
+        port=port,
+        discovery_port=discovery_port,
+        pin=pin,
+        voice_enabled=False if args.no_voice else None,
+        phonon_port=args.phonon_port,
+        phonon_model=args.phonon_model,
+        phonon_threads=args.phonon_threads,
+        phonon_command=args.phonon_command,
+    )
 
     try:
         asyncio.run(run_server(server))

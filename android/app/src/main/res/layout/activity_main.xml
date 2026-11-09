@@ -64,8 +64,8 @@
             android:layout_marginStart="8dp"
             android:background="@drawable/bg_pill"
             android:paddingHorizontal="10dp"
-            android:text="📺 Screen ON"
-            android:textColor="@color/accent"
+            android:text="Screen OFF"
+            android:textColor="@color/text_secondary"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>

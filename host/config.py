@@ -30,6 +30,11 @@ class ConKeyConfig:
     autostart: bool = True
     device_name: str = ""
     device_id: str = ""
+    voice_enabled: bool = True
+    phonon_model: str = "phonon-2"
+    phonon_port: int = 8010
+    phonon_threads: int = 0
+    phonon_command: str = ""
 
     def __post_init__(self):
         if not self.device_name:
@@ -45,6 +50,17 @@ class ConKeyConfig:
         autostart = bool(data.get("autostart", True))
         device_name = str(data.get("device_name", "")).strip() or get_default_device_name()
         device_id = str(data.get("device_id", "")).strip() or uuid.uuid4().hex[:12]
+        voice_enabled = bool(data.get("voice_enabled", True))
+        phonon_model = str(data.get("phonon_model", "phonon-2")).strip() or "phonon-2"
+        try:
+            phonon_port = int(data.get("phonon_port", 8010))
+        except (TypeError, ValueError):
+            phonon_port = 8010
+        try:
+            phonon_threads = int(data.get("phonon_threads", 0))
+        except (TypeError, ValueError):
+            phonon_threads = 0
+        phonon_command = str(data.get("phonon_command", "")).strip()
         return cls(
             port=port,
             discovery_port=discovery_port,
@@ -52,6 +68,11 @@ class ConKeyConfig:
             autostart=autostart,
             device_name=device_name,
             device_id=device_id,
+            voice_enabled=voice_enabled,
+            phonon_model=phonon_model,
+            phonon_port=max(1, min(phonon_port, 65535)),
+            phonon_threads=max(0, phonon_threads),
+            phonon_command=phonon_command,
         )
 
 

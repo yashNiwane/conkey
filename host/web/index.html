@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ConKey - PC Remote Keyboard</title>
   <link rel="stylesheet" href="/static/simple-keyboard.css">
+  <script src="/static/lucide.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -67,11 +68,176 @@
     .dot-status.connected {
       background: #10b981;
     }
-    .apk-link {
-      color: #3b82f6;
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+    .download-dropdown-wrapper {
+      position: relative;
+    }
+    .download-btn-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .download-btn-trigger:hover {
+      background: #334155;
+      border-color: #38bdf8;
+    }
+    .download-btn-trigger .dropdown-chevron {
+      width: 12px;
+      height: 12px;
+      stroke-width: 2.5;
+      transition: transform 0.2s ease;
+    }
+    .download-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: #181b21;
+      border: 1px solid #2b303c;
+      border-radius: 8px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7);
+      width: 240px;
+      padding: 6px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .download-menu.hidden {
+      display: none;
+    }
+    .download-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      color: #f1f5f9;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+    .download-menu-item:hover {
+      background: #252b36;
+    }
+    .download-menu-item .lucide {
+      width: 18px;
+      height: 18px;
+      color: #38bdf8;
+      flex-shrink: 0;
+    }
+    .download-item-title {
       font-size: 12px;
       font-weight: 700;
-      text-decoration: none;
+      color: #f8fafc;
+    }
+    .download-item-sub {
+      font-size: 10px;
+      color: #94a3b8;
+    }
+
+    /* Lucide Vector Icons */
+    .lucide {
+      width: 15px;
+      height: 15px;
+      stroke-width: 2.2;
+      vertical-align: middle;
+      display: inline-block;
+    }
+    .tab-btn .lucide {
+      margin-right: 4px;
+    }
+
+    /* Dedicated Global Voice Dictation Header Button */
+    .header-voice-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #0f172a;
+      color: #38bdf8;
+      border: 1px solid #0284c7;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
+    }
+    .header-voice-btn.starting {
+      background: #b45309;
+      border-color: #f59e0b;
+      color: #ffffff;
+    }
+    .header-voice-btn.listening {
+      background: #dc2626;
+      border-color: #f87171;
+      color: #ffffff;
+      animation: voicePulse 1.2s ease-in-out infinite;
+    }
+    .header-voice-btn:disabled {
+      opacity: 0.45;
+      animation: none;
+    }
+
+    /* Live Dictation Status Pill */
+    .voice-pill {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid #38bdf8;
+      color: #f8fafc;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      z-index: 99999;
+      pointer-events: none;
+      max-width: 90vw;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .voice-pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: #38bdf8;
+      border-radius: 50%;
+      animation: voiceDot 0.8s infinite alternate;
+      flex-shrink: 0;
+    }
+    .voice-pill.listening {
+      border-color: #ef4444;
+    }
+    .voice-pill.listening .voice-pulse-dot {
+      background: #ef4444;
+    }
+
+    @keyframes voiceDot {
+      0% { opacity: 0.3; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1.2); }
+    }
+    @keyframes voicePulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+      50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
     }
 
     /* Direct Typing Bar */
@@ -395,6 +561,12 @@
 </head>
 <body>
 
+  <!-- Live Dictation Status Pill -->
+  <div id="voicePill" class="voice-pill" style="display: none;">
+    <span class="voice-pulse-dot"></span>
+    <span id="voicePillText">Listening... speak into microphone</span>
+  </div>
+
   <!-- Top Header Bar -->
   <header>
     <div class="brand">ConKey</div>
@@ -402,21 +574,49 @@
       <span id="dotStatus" class="dot-status"></span>
       <span id="deviceName">{{DEVICE_NAME}}</span>
     </div>
-    <a href="/download/conkey.apk" class="apk-link" download>Download APK</a>
+    <div class="header-actions">
+      <button id="btnGlobalVoice" class="header-voice-btn" onclick="toggleGlobalVoice()" title="System-wide Voice Typing (Types directly into focused laptop window)"><i data-lucide="audio-lines"></i> <span id="voiceHeaderLabel">Dictate</span></button>
+      <div class="download-dropdown-wrapper">
+        <button id="btnDownloadDropdown" class="download-btn-trigger" onclick="toggleDownloadMenu(event)" title="Download ConKey apps"><i data-lucide="download"></i> <span>Download</span> <i data-lucide="chevron-down" class="dropdown-chevron"></i></button>
+        <div id="downloadMenu" class="download-menu hidden">
+          <a href="/download/conkey.apk" class="download-menu-item" download>
+            <i data-lucide="smartphone"></i>
+            <div>
+              <div class="download-item-title">Android APK</div>
+              <div class="download-item-sub">Mobile controller &amp; voice typing</div>
+            </div>
+          </a>
+          <a href="/download/conkey-windows.zip" class="download-menu-item" download>
+            <i data-lucide="monitor"></i>
+            <div>
+              <div class="download-item-title">Windows Desktop</div>
+              <div class="download-item-sub">Portable ConKey.exe + GUI dashboard</div>
+            </div>
+          </a>
+          <a href="/download/conkey-linux.tar.gz" class="download-menu-item" download>
+            <i data-lucide="terminal"></i>
+            <div>
+              <div class="download-item-title">Linux Desktop</div>
+              <div class="download-item-sub">X11 &amp; Wayland uinput installer</div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
   </header>
 
   <!-- Direct Typing Bar -->
   <div class="typing-bar">
-    <input type="text" id="etTextInput" class="typing-input" placeholder="Type or dictate using phone keyboard..." autocomplete="off">
+    <input type="text" id="etTextInput" class="typing-input" placeholder="Type text to send to laptop..." autocomplete="off">
     <button id="btnSendText" class="typing-btn">Send</button>
   </div>
 
   <!-- Deck Switcher Tabs -->
   <div class="tab-header">
-    <button class="tab-btn active" onclick="switchDeck('keyboard')">⌨ Keyboard</button>
-    <button class="tab-btn" onclick="switchDeck('hotkeys')">⚡ Hotkeys &amp; F-Keys</button>
-    <button class="tab-btn" onclick="switchDeck('touchpad')">🖲 Touchpad</button>
-    <button class="tab-btn" onclick="switchDeck('numpad')">🔢 Numpad</button>
+    <button class="tab-btn active" onclick="switchDeck('keyboard')"><i data-lucide="keyboard"></i> <span>Keyboard</span></button>
+    <button class="tab-btn" onclick="switchDeck('hotkeys')"><i data-lucide="zap"></i> <span>Hotkeys &amp; F-Keys</span></button>
+    <button class="tab-btn" onclick="switchDeck('touchpad')"><i data-lucide="mouse"></i> <span>Touchpad</span></button>
+    <button class="tab-btn" onclick="switchDeck('numpad')"><i data-lucide="calculator"></i> <span>Numpad</span></button>
   </div>
 
   <div class="deck-container">
@@ -463,7 +663,7 @@
             <button class="action-btn" onclick="triggerCombo(['WIN'], 'R')">Win+R Run</button>
             <button class="action-btn" onclick="triggerCombo(['CTRL', 'SHIFT'], 'ESCAPE')">Task Manager</button>
             <button class="action-btn" onclick="triggerCombo(['ALT'], 'F4')">Alt+F4 Close</button>
-            <button class="action-btn" onclick="triggerKey('WIN')">⊞ Win Start</button>
+            <button class="action-btn" onclick="triggerKey('WIN')">Win Start</button>
           </div>
         </div>
 
@@ -538,7 +738,7 @@
         <button class="num-btn" onclick="triggerKey('4')">4</button>
         <button class="num-btn" onclick="triggerKey('5')">5</button>
         <button class="num-btn" onclick="triggerKey('6')">6</button>
-        <button class="num-btn accent" style="grid-row: span 2;" onclick="triggerKey('ENTER')">⏎</button>
+        <button class="num-btn accent" style="grid-row: span 2;" onclick="triggerKey('ENTER')">Enter</button>
 
         <button class="num-btn" onclick="triggerKey('1')">1</button>
         <button class="num-btn" onclick="triggerKey('2')">2</button>
@@ -546,7 +746,7 @@
 
         <button class="num-btn" style="grid-column: span 2;" onclick="triggerKey('0')">0</button>
         <button class="num-btn" onclick="triggerKey('.')">.</button>
-        <button class="num-btn" onclick="triggerKey('BACKSPACE')">⌫</button>
+        <button class="num-btn" onclick="triggerKey('BACKSPACE')">Del</button>
       </div>
     </div>
 
@@ -578,6 +778,8 @@
             isConnected = true;
             dotStatus.className = "dot-status connected";
             deviceNameEl.innerText = msg.device_name || "{{DEVICE_NAME}}";
+          } else if (msg.type && msg.type.startsWith("voice_")) {
+            handleVoiceEvent(msg);
           }
         } catch (err) {}
       };
@@ -585,6 +787,10 @@
       ws.onclose = () => {
         isConnected = false;
         dotStatus.className = "dot-status";
+        stopVoiceCapture();
+        voiceActive = false;
+        voiceStarting = false;
+        updateVoiceUi();
         setTimeout(connectWs, 2500);
       };
 
@@ -643,20 +849,20 @@
       },
       display: {
         "{esc}": "Esc",
-        "{bksp}": "⌫",
-        "{enter}": "⏎ Enter",
+        "{bksp}": "Bksp",
+        "{enter}": "Enter",
         "{tab}": "Tab",
         "{lock}": "Caps",
-        "{shift}": "⇧ Shift",
+        "{shift}": "Shift",
         "{control}": "Ctrl",
         "{alt}": "Alt",
-        "{win}": "⊞",
+        "{win}": "Win",
         "{space}": "Space",
         "{del}": "Del",
-        "{left}": "◀",
-        "{up}": "▲",
-        "{down}": "▼",
-        "{right}": "▶"
+        "{left}": "Left",
+        "{up}": "Up",
+        "{down}": "Down",
+        "{right}": "Right"
       },
       onKeyPress: button => handleKeyPress(button)
     });
@@ -769,6 +975,237 @@
       }
     });
 
+    // =========================================================================
+    // SYSTEM-WIDE REAL-TIME VOICE TYPING (browser microphone -> Phonon-2 stream)
+    // =========================================================================
+    let voiceActive = false;
+    let voiceStarting = false;
+    let voiceFinishing = false;
+    let voiceCancelRequested = false;
+
+    let micStream = null;
+    let audioCtx = null;
+    let micSource = null;
+    let micProcessor = null;
+    let micSink = null;
+
+    const voiceBtn = document.getElementById("btnGlobalVoice");
+    const voiceBtnLabel = document.getElementById("voiceHeaderLabel");
+    const voicePill = document.getElementById("voicePill");
+    const voicePillText = document.getElementById("voicePillText");
+
+    function updateVoiceUi() {
+      if (!voiceBtn) return;
+      voiceBtn.classList.toggle("listening", voiceActive);
+      voiceBtn.classList.toggle("starting", (voiceStarting || voiceFinishing) && !voiceActive);
+      voiceBtn.disabled = voiceFinishing || (!voiceActive && !voiceStarting && !isConnected);
+      if (voiceBtnLabel) {
+        voiceBtnLabel.textContent = voiceActive ? "Stop" : (voiceStarting ? "Starting..." : "Dictate");
+      }
+      if (voicePill) {
+        voicePill.style.display = (voiceActive || voiceStarting || voiceFinishing) ? "flex" : "none";
+        voicePill.classList.toggle("listening", voiceActive);
+      }
+      if (window.lucide && window.lucide.createIcons) {
+        window.lucide.createIcons();
+      }
+    }
+
+    async function toggleGlobalVoice() {
+      if (voiceActive || voiceStarting) {
+        stopVoiceTyping();
+        return;
+      }
+      if (voiceFinishing) return;
+
+      if (!isConnected || !ws || ws.readyState !== WebSocket.OPEN) {
+        alert("Connect to the laptop first.");
+        return;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Microphone capture requires HTTPS or localhost in browser. Please use the ConKey Android app.");
+        return;
+      }
+
+      voiceCancelRequested = false;
+
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+      } catch (e) {
+        alert("Microphone permission denied.");
+        return;
+      }
+
+      try {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new Ctx({ sampleRate: 16000 });
+        await audioCtx.resume();
+      } catch (e) {
+        stopVoiceCapture();
+        alert("Could not start audio processing: " + e.message);
+        return;
+      }
+
+      voiceStarting = true;
+      if (voicePillText) voicePillText.textContent = "Starting Phonon-2 on the laptop...";
+      updateVoiceUi();
+      sendCommand("voice_start", {
+        sample_rate: 16000,
+        format: "pcm_s16le"
+      });
+    }
+
+    function stopVoiceTyping() {
+      if (voiceStarting && !voiceActive) {
+        voiceCancelRequested = true;
+        voiceStarting = false;
+        voiceFinishing = false;
+        stopVoiceCapture();
+        sendCommand("voice_cancel", {});
+        if (voicePillText) voicePillText.textContent = "Voice typing cancelled.";
+        updateVoiceUi();
+        setTimeout(() => {
+          if (!voiceActive && !voiceStarting && voicePill) voicePill.style.display = "none";
+        }, 1500);
+        return;
+      }
+      stopVoiceCapture();
+      voiceStarting = false;
+      voiceFinishing = true;
+      if (voicePillText) voicePillText.textContent = "Finishing dictation...";
+      sendCommand("voice_stop", {});
+      updateVoiceUi();
+    }
+
+    function connectMicPump() {
+      if (!audioCtx || !micStream) return;
+      micSource = audioCtx.createMediaStreamSource(micStream);
+      micProcessor = audioCtx.createScriptProcessor(1024, 1, 1);
+      micSink = audioCtx.createGain();
+      micSink.gain.value = 0;
+
+      micProcessor.onaudioprocess = (event) => {
+        if (!voiceActive || !ws || ws.readyState !== WebSocket.OPEN) return;
+        const input = event.inputBuffer.getChannelData(0);
+        const pcm = pcm16At16k(input, audioCtx.sampleRate);
+        if (pcm.length) ws.send(pcm.buffer);
+      };
+
+      micSource.connect(micProcessor);
+      micProcessor.connect(micSink);
+      micSink.connect(audioCtx.destination);
+    }
+
+    function pcm16At16k(samples, sourceRate) {
+      let data = samples;
+      if (sourceRate !== 16000) {
+        const ratio = sourceRate / 16000;
+        const outLen = Math.max(1, Math.floor(samples.length / ratio));
+        const out = new Float32Array(outLen);
+        for (let i = 0; i < outLen; i++) {
+          const pos = i * ratio;
+          const idx = Math.floor(pos);
+          const frac = pos - idx;
+          const a = samples[idx] || 0;
+          const b = samples[Math.min(idx + 1, samples.length - 1)] || a;
+          out[i] = a + (b - a) * frac;
+        }
+        data = out;
+      }
+      const pcm = new Int16Array(data.length);
+      for (let i = 0; i < data.length; i++) {
+        const s = Math.max(-1, Math.min(1, data[i]));
+        pcm[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      }
+      return pcm;
+    }
+
+    function stopVoiceCapture() {
+      if (micProcessor) {
+        try { micProcessor.disconnect(); } catch (e) {}
+        micProcessor.onaudioprocess = null;
+        micProcessor = null;
+      }
+      if (micSource) {
+        try { micSource.disconnect(); } catch (e) {}
+        micSource = null;
+      }
+      if (micSink) {
+        try { micSink.disconnect(); } catch (e) {}
+        micSink = null;
+      }
+      if (micStream) {
+        micStream.getTracks().forEach(track => { try { track.stop(); } catch (e) {} });
+        micStream = null;
+      }
+      if (audioCtx) {
+        try { audioCtx.close(); } catch (e) {}
+        audioCtx = null;
+      }
+    }
+
+    function handleVoiceEvent(event) {
+      if (!event || !event.type) return;
+      switch (event.type) {
+        case "voice_loading":
+          voiceStarting = true;
+          if (voicePillText) voicePillText.textContent = event.message || "Loading Phonon-2...";
+          break;
+        case "voice_ready":
+          voiceStarting = false;
+          if (voiceCancelRequested) {
+            voiceCancelRequested = false;
+            sendCommand("voice_cancel", {});
+            stopVoiceCapture();
+            voiceActive = false;
+            if (voicePillText) voicePillText.textContent = "Voice typing cancelled.";
+            break;
+          }
+          voiceActive = true;
+          connectMicPump();
+          if (voicePillText) voicePillText.textContent = "Listening... speak now";
+          break;
+        case "voice_partial":
+          if (voicePillText) voicePillText.textContent = event.text || "Listening...";
+          break;
+        case "voice_final":
+          if (voicePillText) voicePillText.textContent = event.text || "";
+          break;
+        case "voice_done":
+          voiceActive = false;
+          voiceStarting = false;
+          voiceFinishing = false;
+          voiceCancelRequested = false;
+          stopVoiceCapture();
+          if (voicePillText) voicePillText.textContent = event.text ? ("Done: " + event.text) : "Dictation completed";
+          setTimeout(() => {
+            if (!voiceActive && !voiceStarting && !voiceFinishing && voicePill) voicePill.style.display = "none";
+          }, 1800);
+          break;
+        case "voice_error":
+          voiceActive = false;
+          voiceStarting = false;
+          voiceFinishing = false;
+          voiceCancelRequested = false;
+          stopVoiceCapture();
+          if (voicePillText) voicePillText.textContent = event.message || "Voice typing stopped.";
+          setTimeout(() => {
+            if (!voiceActive && !voiceStarting && !voiceFinishing && voicePill) voicePill.style.display = "none";
+          }, 3000);
+          break;
+      }
+      updateVoiceUi();
+    }
+
+    updateVoiceUi();
+
     // Touchpad Pointer Tracking
     const pad = document.getElementById("touchpadSurface");
     let touchStartX = 0, touchStartY = 0;
@@ -836,6 +1273,25 @@
         }
       }
     }, { passive: false });
+    // Download Dropdown Handler
+    function toggleDownloadMenu(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById("downloadMenu");
+      if (menu) {
+        menu.classList.toggle("hidden");
+        if (typeof lucide !== "undefined" && lucide.createIcons) {
+          lucide.createIcons();
+        }
+      }
+    }
+
+    document.addEventListener("click", (e) => {
+      const menu = document.getElementById("downloadMenu");
+      const wrapper = document.querySelector(".download-dropdown-wrapper");
+      if (menu && !menu.classList.contains("hidden") && wrapper && !wrapper.contains(e.target)) {
+        menu.classList.add("hidden");
+      }
+    });
   </script>
 </body>
 </html>

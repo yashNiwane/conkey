@@ -25,23 +25,30 @@ class CURSORINFO(ctypes.Structure):
 
 def get_screen_resolution() -> Tuple[int, int]:
     """Returns the primary screen resolution (width, height)."""
-    user32 = ctypes.windll.user32
-    w = user32.GetSystemMetrics(0)
-    h = user32.GetSystemMetrics(1)
-    return w, h
+    if hasattr(ctypes, "windll"):
+        user32 = ctypes.windll.user32
+        w = user32.GetSystemMetrics(0)
+        h = user32.GetSystemMetrics(1)
+        return w, h
+    try:
+        img = ImageGrab.grab()
+        return img.size
+    except Exception:
+        return 1920, 1080
 
 
 def get_cursor_info() -> Tuple[Optional[Tuple[int, int]], bool]:
     """Retrieves current cursor position and visibility state."""
     ensure_desktop()
-    try:
-        ci = CURSORINFO()
-        ci.cbSize = ctypes.sizeof(CURSORINFO)
-        if ctypes.windll.user32.GetCursorInfo(ctypes.byref(ci)):
-            is_showing = bool(ci.flags & 0x00000001)  # CURSOR_SHOWING
-            return (ci.ptScreenPos.x, ci.ptScreenPos.y), is_showing
-    except Exception:
-        pass
+    if hasattr(ctypes, "windll"):
+        try:
+            ci = CURSORINFO()
+            ci.cbSize = ctypes.sizeof(CURSORINFO)
+            if ctypes.windll.user32.GetCursorInfo(ctypes.byref(ci)):
+                is_showing = bool(ci.flags & 0x00000001)  # CURSOR_SHOWING
+                return (ci.ptScreenPos.x, ci.ptScreenPos.y), is_showing
+        except Exception:
+            pass
     return None, False
 
 
